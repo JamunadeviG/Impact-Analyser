@@ -8,6 +8,16 @@ frappe.pages["impact-analyzer"].on_page_load = function (wrapper) {
 		single_column: true,
 	});
 
+	// Inject the page CSS if not already loaded
+	if (!document.getElementById("ia-page-css")) {
+		const link = document.createElement("link");
+		link.id = "ia-page-css";
+		link.rel = "stylesheet";
+		link.href = frappe.router.slug(frappe.urllib.get_base_url()) +
+			"/assets/impact_analyser/css/impact_analyzer.css";
+		document.head.appendChild(link);
+	}
+
 	const ia = new ImpactAnalyzerPage(page, wrapper);
 	frappe.pages["impact-analyzer"]._ia = ia;
 };
@@ -23,7 +33,8 @@ class ImpactAnalyzerPage {
 	constructor(page, wrapper) {
 		this.page = page;
 		this.wrapper = wrapper;
-		this.$main = $(wrapper).find(".page-content");
+		// Use page.main — the correct Frappe v15 content area jQuery object
+		this.$main = page.main;
 		this.current_run_id = null;
 		this.all_changes = [];
 		this.active_filter = "all";

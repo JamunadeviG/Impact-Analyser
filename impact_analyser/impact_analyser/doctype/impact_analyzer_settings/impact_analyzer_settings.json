@@ -4,37 +4,37 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "claude_settings_section",
-  "claude_api_key",
+  "gemini_settings_section",
+  "gemini_api_key",
   "interpreter_model",
   "report_model",
   "enable_mock_fallback"
  ],
  "fields": [
   {
-   "fieldname": "claude_settings_section",
+   "fieldname": "gemini_settings_section",
    "fieldtype": "Section Break",
-   "label": "Claude AI Settings"
+   "label": "Gemini AI Settings"
   },
   {
-   "description": "Anthropic API key for Claude. If left blank, ANTHROPIC_API_KEY environment variable will be checked.",
-   "fieldname": "claude_api_key",
+   "description": "Google Gemini API key. If left blank, GEMINI_API_KEY environment variable will be checked.",
+   "fieldname": "gemini_api_key",
    "fieldtype": "Password",
-   "label": "Claude API Key"
+   "label": "Gemini API Key"
   },
   {
-   "default": "claude-haiku-4-5",
+   "default": "gemini-1.5-flash",
    "fieldname": "interpreter_model",
    "fieldtype": "Select",
    "label": "Interpreter Model",
-   "options": "claude-haiku-4-5\nclaude-sonnet-5\nclaude-3-5-haiku-20241022\nclaude-3-5-sonnet-20241022"
+   "options": "gemini-1.5-flash\ngemini-1.5-pro\ngemini-2.0-flash"
   },
   {
-   "default": "claude-sonnet-5",
+   "default": "gemini-1.5-pro",
    "fieldname": "report_model",
    "fieldtype": "Select",
    "label": "Report Model",
-   "options": "claude-sonnet-5\nclaude-haiku-4-5\nclaude-3-5-sonnet-20241022\nclaude-3-5-haiku-20241022"
+   "options": "gemini-1.5-pro\ngemini-1.5-flash\ngemini-2.0-flash"
   },
   {
    "default": "0",
@@ -47,7 +47,7 @@
  "index_web_pages_for_search": 0,
  "issingle": 1,
  "links": [],
- "modified": "2026-09-16 12:00:00.000000",
+ "modified": "2026-09-16 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "Impact Analyser",
  "name": "Impact Analyzer Settings",

@@ -36,6 +36,18 @@ def analyze(app=None, doctype=None, filenames=None, functions=None, prompt=None)
 	if not app and not doctype and not filenames and not functions and not prompt:
 		frappe.throw(_("Please specify an app, a target (DocType / files / functions), or a prompt."))
 
+	user = frappe.session.user
+	if user != "Administrator":
+		active_runs = frappe.db.count(
+			"Impact Analysis Run",
+			filters={
+				"triggered_by": user,
+				"status": ("in", ["Queued", "Interpreting", "Scanning", "Drafting", "Formatting"]),
+			},
+		)
+		if active_runs >= 5:
+			frappe.throw(_("You have reached the maximum limit of 5 concurrent analysis runs. Please wait for them to complete."))
+
 	if prompt:
 		path_used = "AI Interpretation"
 	elif doctype or filenames or functions:
