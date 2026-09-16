@@ -1,0 +1,73 @@
+{
+ "actions": [],
+ "creation": "2026-09-16 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "claude_settings_section",
+  "claude_api_key",
+  "interpreter_model",
+  "report_model",
+  "enable_mock_fallback"
+ ],
+ "fields": [
+  {
+   "fieldname": "claude_settings_section",
+   "fieldtype": "Section Break",
+   "label": "Claude AI Settings"
+  },
+  {
+   "description": "Anthropic API key for Claude. If left blank, ANTHROPIC_API_KEY environment variable will be checked.",
+   "fieldname": "claude_api_key",
+   "fieldtype": "Password",
+   "label": "Claude API Key"
+  },
+  {
+   "default": "claude-haiku-4-5",
+   "fieldname": "interpreter_model",
+   "fieldtype": "Select",
+   "label": "Interpreter Model",
+   "options": "claude-haiku-4-5\nclaude-sonnet-5\nclaude-3-5-haiku-20241022\nclaude-3-5-sonnet-20241022"
+  },
+  {
+   "default": "claude-sonnet-5",
+   "fieldname": "report_model",
+   "fieldtype": "Select",
+   "label": "Report Model",
+   "options": "claude-sonnet-5\nclaude-haiku-4-5\nclaude-3-5-sonnet-20241022\nclaude-3-5-haiku-20241022"
+  },
+  {
+   "default": "0",
+   "description": "Allow mock fallback responses when API key is not configured (useful for development and automated testing).",
+   "fieldname": "enable_mock_fallback",
+   "fieldtype": "Check",
+   "label": "Enable Mock Fallback"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-09-16 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Impact Analyser",
+ "name": "Impact Analyzer Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

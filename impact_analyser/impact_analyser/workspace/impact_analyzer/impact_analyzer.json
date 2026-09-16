@@ -1,0 +1,113 @@
+{
+ "app": "impact_analyser",
+ "charts": [],
+ "content": "[{\"id\":\"WkH7A1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Impact Analyzer\",\"col\":4}},{\"id\":\"WkH7A2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Analysis Runs\",\"col\":4}},{\"id\":\"WkH7A3\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Analyzer Settings\",\"col\":4}},{\"id\":\"WkH7A4\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"WkH7A5\",\"type\":\"card\",\"data\":{\"card_name\":\"Analysis & Operations\",\"col\":6}},{\"id\":\"WkH7A6\",\"type\":\"card\",\"data\":{\"card_name\":\"Configuration & Audit\",\"col\":6}}]",
+ "creation": "2026-09-16 12:00:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "hide_custom": 0,
+ "icon": "search",
+ "idx": 1,
+ "is_hidden": 0,
+ "label": "Impact Analyzer",
+ "links": [
+  {
+   "description": "Core analysis interface and history",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Analysis & Operations",
+   "link_count": 2,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Impact Analyzer Desk Page",
+   "link_count": 0,
+   "link_to": "impact-analyzer",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Impact Analysis Runs",
+   "link_count": 0,
+   "link_to": "Impact Analysis Run",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "description": "API keys, models, and execution logs",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Configuration & Audit",
+   "link_count": 2,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Analyzer Settings",
+   "link_count": 0,
+   "link_to": "Impact Analyzer Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Analysis Logs",
+   "link_count": 0,
+   "link_to": "Impact Analyzer Log",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-09-16 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Impact Analyser",
+ "name": "Impact Analyzer",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 1.0,
+ "shortcuts": [
+  {
+   "color": "Blue",
+   "doc_view": "List",
+   "label": "Impact Analyzer",
+   "link_to": "impact-analyzer",
+   "type": "Page"
+  },
+  {
+   "color": "Green",
+   "doc_view": "List",
+   "label": "Analysis Runs",
+   "link_to": "Impact Analysis Run",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Analyzer Settings",
+   "link_to": "Impact Analyzer Settings",
+   "type": "DocType"
+  }
+ ],
+ "title": "Impact Analyzer",
+ "type": "Workspace"
+}

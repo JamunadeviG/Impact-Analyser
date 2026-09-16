@@ -1,0 +1,213 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "IAR-.#####",
+ "creation": "2026-09-16 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "target_section",
+  "app",
+  "doctype_target",
+  "filenames",
+  "functions",
+  "path_used",
+  "status",
+  "triggered_by",
+  "prompt_section",
+  "prompt",
+  "results_section",
+  "summary",
+  "changes_section",
+  "changes",
+  "raw_data_section",
+  "extraction_result",
+  "scan_report",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "target_section",
+   "fieldtype": "Section Break",
+   "label": "Analysis Target"
+  },
+  {
+   "columns": 2,
+   "fieldname": "app",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "App"
+  },
+  {
+   "columns": 2,
+   "fieldname": "doctype_target",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "DocType Target",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "filenames",
+   "fieldtype": "Small Text",
+   "label": "Target Files"
+  },
+  {
+   "fieldname": "functions",
+   "fieldtype": "Small Text",
+   "label": "Target Functions / Symbols"
+  },
+  {
+   "columns": 2,
+   "fieldname": "path_used",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Path Used",
+   "options": "AI Interpretation\nDirect Target\nFull Scan"
+  },
+  {
+   "columns": 2,
+   "default": "Queued",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Queued\nInterpreting\nScanning\nDrafting\nFormatting\nComplete\nFailed"
+  },
+  {
+   "default": "__user",
+   "fieldname": "triggered_by",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Triggered By",
+   "options": "User"
+  },
+  {
+   "fieldname": "prompt_section",
+   "fieldtype": "Section Break",
+   "label": "User Prompt"
+  },
+  {
+   "fieldname": "prompt",
+   "fieldtype": "Long Text",
+   "label": "Prompt"
+  },
+  {
+   "fieldname": "results_section",
+   "fieldtype": "Section Break",
+   "label": "Impact Summary"
+  },
+  {
+   "fieldname": "summary",
+   "fieldtype": "Text Editor",
+   "in_global_search": 1,
+   "label": "Summary"
+  },
+  {
+   "fieldname": "changes_section",
+   "fieldtype": "Section Break",
+   "label": "Identified Changes"
+  },
+  {
+   "fieldname": "changes",
+   "fieldtype": "Table",
+   "label": "Changes",
+   "options": "Impact Analysis Change"
+  },
+  {
+   "collapsed": 1,
+   "fieldname": "raw_data_section",
+   "fieldtype": "Section Break",
+   "label": "Raw Analysis Data"
+  },
+  {
+   "fieldname": "extraction_result",
+   "fieldtype": "Code",
+   "label": "Extraction Result",
+   "options": "JSON"
+  },
+  {
+   "fieldname": "scan_report",
+   "fieldtype": "Code",
+   "label": "Scan Report",
+   "options": "JSON"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Impact Analysis Run",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-09-16 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Impact Analyser",
+ "name": "Impact Analysis Run",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "All"
+  }
+ ],
+ "quick_entry": 1,
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [
+  {
+   "color": "Blue",
+   "title": "Queued"
+  },
+  {
+   "color": "Orange",
+   "title": "Interpreting"
+  },
+  {
+   "color": "Purple",
+   "title": "Scanning"
+  },
+  {
+   "color": "Yellow",
+   "title": "Drafting"
+  },
+  {
+   "color": "Cyan",
+   "title": "Formatting"
+  },
+  {
+   "color": "Green",
+   "title": "Complete"
+  },
+  {
+   "color": "Red",
+   "title": "Failed"
+  }
+ ],
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1
+}
