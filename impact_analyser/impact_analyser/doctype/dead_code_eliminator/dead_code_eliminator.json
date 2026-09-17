@@ -1,11 +1,11 @@
 {
  "actions": [],
  "allow_rename": 1,
- "creation": "2026-09-17 12:55:00.000000",
+ "autoname": "App Scan -.###",
+ "creation": "2026-09-17 12:55:00",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "title",
   "target_app",
   "app_path",
   "col_break_1",
@@ -37,14 +37,6 @@
   "unified_diff"
  ],
  "fields": [
-  {
-   "default": "App Scan",
-   "fieldname": "title",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Scan Name",
-   "reqd": 1
-  },
   {
    "default": "airplane_mode",
    "fieldname": "target_app",
@@ -223,12 +215,11 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-17 12:55:00.000000",
+ "modified": "2026-09-17 16:45:09.893799",
  "modified_by": "Administrator",
  "module": "Impact Analyser",
  "name": "Dead Code Eliminator",
- "naming_rule": "By fieldname",
- "autoname": "field:title",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {
@@ -244,6 +235,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
