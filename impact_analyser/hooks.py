@@ -19,5 +19,3 @@ add_to_apps_screen = [
 		"route": "/app/impact-analyzer",
 	}
 ]
-
-bench_commands = ["impact_analyser.commands"]
