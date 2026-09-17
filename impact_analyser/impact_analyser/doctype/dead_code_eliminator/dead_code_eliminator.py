@@ -5,6 +5,7 @@ import ast
 import difflib
 import os
 import re
+# pyrefly: ignore [missing-import]
 import frappe
 from frappe.model.document import Document
 
