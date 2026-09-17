@@ -19,3 +19,4 @@ add_to_apps_screen = [
 		"route": "/app/impact-analyzer",
 	}
 ]
+

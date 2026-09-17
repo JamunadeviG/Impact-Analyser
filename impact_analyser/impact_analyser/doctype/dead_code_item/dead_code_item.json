@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "creation": "2026-09-17 12:45:00.000000",
+ "creation": "2026-09-17 12:45:00",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
@@ -28,7 +28,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Type",
-   "options": "Function\nClass\nInterface\nConstant\nVariable\nImport\nParameter\nPrivate Member\nControl Flow Block\nModule Export"
+   "options": "Function\nClass\nInterface\nConstant\nVariable\nImport\nParameter\nPrivate Member\nControl Flow Block\nModule Export\nJS Function"
   },
   {
    "fieldname": "file_path",
@@ -72,12 +72,13 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-09-17 12:45:00.000000",
+ "modified": "2026-09-17 14:36:45.703747",
  "modified_by": "Administrator",
  "module": "Impact Analyser",
  "name": "Dead Code Item",
  "owner": "Administrator",
  "permissions": [],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
