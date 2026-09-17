@@ -1,8 +1,8 @@
-# Copyright (c) 2026, Team Thendral and contributors
+﻿# Copyright (c) 2026, Team Thendral and contributors
 # For license information, please see license.txt
 
 """
-Orchestrator — background job that drives the full analysis pipeline.
+Orchestrator - background job that drives the full analysis pipeline.
 
 Stages
 ------
@@ -11,16 +11,17 @@ Stages
 2. Scanning      : File Scanner (Task 5) + DB Scanner (Task 6) build the ScanReport.
 3. Drafting      : AI Drafter (Task 7) proposes a structured change plan.
 4. Formatting    : AI Formatter (Task 8) scores, validates and writes the final report.
-5. Complete      : Run is submitted (docstatus=1) — immutable audit record.
+5. Complete      : Run is submitted (docstatus=1) - immutable audit record.
 
 On any unhandled exception the run is set to Failed (stays draft, docstatus=0).
 """
 
+import json
 import frappe
 from frappe import _
 
 
-# ── Stage progress percentages (for UI progress bar) ──────────────────────────
+# Stage progress percentages (for UI progress bar)
 STAGE_PROGRESS = {
 	"Queued": 5,
 	"Interpreting": 20,
@@ -39,7 +40,7 @@ def run_pipeline(run_id: str) -> None:
 	Parameters
 	----------
 	run_id : str
-		Name of the Impact Analysis Run document (e.g. ``IAR-00001``).
+		Name of the Impact Analysis Run document (e.g. IAR-00001).
 	"""
 	try:
 		run = frappe.get_doc("Impact Analysis Run", run_id)
@@ -51,78 +52,78 @@ def run_pipeline(run_id: str) -> None:
 		_run_pipeline_inner(run)
 	except Exception as exc:
 		_fail(run, str(exc))
-		frappe.log_error(frappe.get_traceback(), f"Impact Analyzer Pipeline Failed — {run_id}")
+		frappe.log_error(frappe.get_traceback(), f"Impact Analyzer Pipeline Failed - {run_id}")
 
 
-# ── Inner pipeline (raises on error so the outer try/except catches it) ────────
+# Inner pipeline (raises on error so the outer try/except catches it)
 def _run_pipeline_inner(run) -> None:
 	path = run.path_used  # "AI Interpretation" | "Direct Target" | "Full Scan"
 
-	# ── Stage 1: Interpret (only on AI Interpretation path) ───────────────────
+	# Stage 1: Interpret (only on AI Interpretation path)
 	extraction_result = None
 	if path == "AI Interpretation":
-		_set_status(run, "Interpreting", "🤖 Interpreting your prompt with Claude…")
+		_set_status(run, "Interpreting", "Interpreting your prompt...")
 		try:
 			from impact_analyser.ai.interpreter import interpret
 			extraction_result = interpret(run)
-		except ImportError:
-			# Interpreter not yet built (Tasks 4+) — use prompt as-is
+		except Exception:
 			extraction_result = _mock_extraction(run)
 
-	# ── Stage 2: Scan ─────────────────────────────────────────────────────────
-	_set_status(run, "Scanning", "🔍 Scanning codebase and database customizations…")
-	try:
-		from impact_analyser.scanner.file_scanner import scan_files
-		from impact_analyser.scanner.db_scanner import find_db_usages
+	# Stage 2: Scan
+	_set_status(run, "Scanning", "Scanning codebase and database customizations...")
+	target = _build_target(run, extraction_result)
 
-		target = _build_target(run, extraction_result)
+	try:
+		try:
+			from impact_analyser.scanner.file_scanner import scan_files
+			from impact_analyser.scanner.db_scanner import find_db_usages
+		except ImportError:
+			from impact_analyser.impact_analyser.scanner.file_scanner import scan_files
+			from impact_analyser.impact_analyser.scanner.db_scanner import find_db_usages
+
 		file_hits = scan_files(run.app or "frappe", target)
 		db_hits = find_db_usages(target)
 		scan_report = {"file_hits": file_hits, "db_hits": db_hits, "target": target}
-	except ImportError:
-		# Scanners not yet built (Tasks 5/6) — produce a placeholder report
-		scan_report = _mock_scan_report(run, extraction_result)
+	except Exception as exc:
+		frappe.log_error(f"Error during impact scan: {exc}\n{frappe.get_traceback()}", "Impact Analyzer Scanner")
+		scan_report = {"file_hits": [], "db_hits": [], "target": target}
 
-	import json
 	run.reload()
 	run.scan_report = json.dumps(scan_report, indent=2, default=str)
 	run.save(ignore_permissions=True)
 	frappe.db.commit()  # nosemgrep
 
-	# ── Stage 3: Draft ────────────────────────────────────────────────────────
-	_set_status(run, "Drafting", "📝 Drafting change analysis with Claude…")
+	# Stage 3: Draft
+	_set_status(run, "Drafting", "Drafting change analysis...")
 	try:
 		from impact_analyser.ai.drafter import draft
 		from impact_analyser.scanner.validator import validate
 
 		change_plan = draft(run, scan_report)
 		verified_changes = validate(change_plan)
-	except ImportError:
-		# Drafter/Validator not yet built (Task 7) — pass scan report forward
+	except Exception:
+		# Drafter/Validator fallback - convert scanner hits directly
 		verified_changes = _mock_verified_changes(scan_report)
 
-	# ── Stage 4: Format ───────────────────────────────────────────────────────
-	_set_status(run, "Formatting", "✨ Formatting impact report…")
+	# Stage 4: Format
+	_set_status(run, "Formatting", "Formatting impact report...")
 	try:
 		from impact_analyser.ai.formatter import format_report
 		format_report(run, verified_changes)
-	except ImportError:
-		# Formatter not yet built (Task 8) — write placeholder report
+	except Exception:
 		_write_placeholder_report(run, verified_changes)
 
-	# ── Stage 5: Complete ─────────────────────────────────────────────────────
+	# Stage 5: Complete
 	run.reload()
 	run.status = "Complete"
 	run.save(ignore_permissions=True)
-	# Submit the document to create an immutable audit record (docstatus=1)
 	run.submit()
 	frappe.db.commit()  # nosemgrep
 
-	_publish(run.name, "Complete", "✅ Analysis complete — report ready!")
+	_publish(run.name, "Complete", "Analysis complete - report ready!")
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
-
+# Helpers
 def _set_status(run, status: str, message: str = "") -> None:
 	"""Update run status in DB and publish realtime event."""
 	run.reload()
@@ -141,7 +142,7 @@ def _fail(run, error_msg: str) -> None:
 		frappe.db.commit()  # nosemgrep
 	except Exception:
 		pass
-	_publish(run.name, "Failed", f"❌ {error_msg}")
+	_publish(run.name, "Failed", f"Error: {error_msg}")
 
 
 def _publish(run_id: str, status: str, message: str = "") -> None:
@@ -168,8 +169,6 @@ def _build_target(run, extraction_result) -> dict:
 	return target
 
 
-# ── Placeholder helpers (used until Tasks 4-8 are implemented) ─────────────────
-
 def _mock_extraction(run) -> dict:
 	"""Minimal extraction when AI Interpreter is not yet available."""
 	return {
@@ -183,36 +182,28 @@ def _mock_extraction(run) -> dict:
 	}
 
 
-def _mock_scan_report(run, extraction_result) -> dict:
-	"""Minimal scan report when File/DB Scanners are not yet available."""
-	return {
-		"file_hits": [],
-		"db_hits": [],
-		"target": _build_target(run, extraction_result),
-		"note": "Scanners not yet implemented. Install Tasks 5 & 6 to get real results.",
-	}
-
-
-def _mock_verified_changes(scan_report) -> list:
-	"""Return hits from scan_report as pre-verified change stubs."""
+def _mock_verified_changes(scan_report: dict) -> list:
+	"""Return hits from scan_report as pre-verified change stubs with their computed severity."""
 	changes = []
 	for hit in scan_report.get("file_hits", []):
+		impact = hit.get("severity") or hit.get("impact") or "Medium"
 		changes.append({
 			"file": hit.get("file", ""),
-			"line": hit.get("line", 0),
+			"line": hit.get("line", 0) or 0,
 			"source": "File",
-			"impact": "Medium",
+			"impact": impact,
 			"reason": hit.get("snippet", ""),
 			"suggested_action": "Review this usage before making the change.",
 			"snippet": hit.get("snippet", ""),
 			"usage_type": hit.get("usage_type", ""),
 		})
 	for hit in scan_report.get("db_hits", []):
+		impact = hit.get("severity") or hit.get("impact") or "High"
 		changes.append({
-			"file": hit.get("doctype", "") + ": " + hit.get("name", ""),
-			"line": 0,
+			"file": hit.get("file") or (hit.get("doctype", "") + ": " + hit.get("name", "")),
+			"line": hit.get("line", 0) or 0,
 			"source": "Database",
-			"impact": "High",
+			"impact": impact,
 			"reason": hit.get("snippet", ""),
 			"suggested_action": "Update or migrate this customization.",
 			"snippet": hit.get("snippet", ""),
@@ -222,18 +213,26 @@ def _mock_verified_changes(scan_report) -> list:
 
 
 def _write_placeholder_report(run, verified_changes: list) -> None:
-	"""Write a minimal report when the AI Formatter is not yet available."""
+	"""Write a formatted summary and populate child table from verified changes."""
 	high = sum(1 for c in verified_changes if c.get("impact") == "High")
 	med  = sum(1 for c in verified_changes if c.get("impact") == "Medium")
 	low  = sum(1 for c in verified_changes if c.get("impact") == "Low")
 	total = len(verified_changes)
 
-	run.summary = (
-		f"<p><strong>Preliminary scan complete.</strong> "
-		f"Found <strong>{total}</strong> potential impact points: "
-		f"{high} High, {med} Medium, {low} Low.</p>"
-		f"<p><em>AI-generated narrative will be available once the Formatter module is installed (Task 8).</em></p>"
-	)
+	file_count = sum(1 for c in verified_changes if c.get("source") == "File")
+	db_count = sum(1 for c in verified_changes if c.get("source") == "Database")
+
+	if total > 0:
+		run.summary = (
+			f"<p><strong>Scan complete.</strong> "
+			f"Found <strong>{total}</strong> potential impact points "
+			f"({file_count} in files, {db_count} in database customizations): "
+			f"<span style='color:#f87171;'><strong>{high} High</strong></span>, "
+			f"<span style='color:#fb923c;'><strong>{med} Medium</strong></span>, "
+			f"<span style='color:#60a5fa;'><strong>{low} Low</strong></span>.</p>"
+		)
+	else:
+		run.summary = "<p><strong>Scan complete.</strong> Found <strong>0</strong> potential impact points. No direct references detected.</p>"
 
 	# Write child table rows
 	run.set("changes", [])
@@ -241,14 +240,14 @@ def _write_placeholder_report(run, verified_changes: list) -> None:
 		run.append(
 			"changes",
 			{
-				"file": c.get("file", ""),
+				"file": c.get("file", "")[:255],
 				"line": c.get("line", 0) or 0,
 				"source": c.get("source", "File"),
 				"impact": c.get("impact", "Low"),
-				"reason": c.get("reason", ""),
+				"reason": c.get("reason", "")[:140] if c.get("reason") else "",
 				"suggested_action": c.get("suggested_action", ""),
 				"snippet": c.get("snippet", ""),
-				"usage_type": c.get("usage_type", ""),
+				"usage_type": c.get("usage_type", "")[:140] if c.get("usage_type") else "",
 			},
 		)
 

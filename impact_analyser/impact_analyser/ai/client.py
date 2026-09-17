@@ -1,4 +1,4 @@
-# Copyright (c) 2026, Team Thendral and contributors
+﻿# Copyright (c) 2026, Team Thendral and contributors
 # For license information, please see license.txt
 
 import json
@@ -21,7 +21,10 @@ def get_api_key(settings=None):
 		settings = get_settings()
 	key = ""
 	if hasattr(settings, "get_password"):
-		key = settings.get_password("gemini_api_key") or ""
+		try:
+			key = settings.get_password("gemini_api_key", raise_exception=False) or ""
+		except Exception:
+			key = ""
 	if not key and hasattr(settings, "gemini_api_key"):
 		key = settings.gemini_api_key or ""
 	if not key:
@@ -122,66 +125,57 @@ def call_gemini(
 				mock_text,
 			)
 			return mock_text
-		raise frappe.ValidationError(_("Gemini API request failed: {0}").format(str(exc)))
+		raise
 
 
-# Keep backward-compatible alias so orchestrator ImportError fallbacks still work
-call_claude = call_gemini
-
-
-def _log_api_call(run_id, stage, model, prompt_sent, response_received):
-	"""Save audit log record in Impact Analyzer Log."""
+def _log_api_call(run_id: str, stage: str, model: str, request_payload: str, response_payload: str) -> None:
+	"""Write an audit entry to Impact Analyzer Log."""
 	try:
-		log = frappe.get_doc({
-			"doctype": "Impact Analyzer Log",
-			"run": run_id,
-			"stage": stage,
-			"model": model,
-			"timestamp": frappe.utils.now_datetime(),
-			"prompt_sent": prompt_sent,
-			"response_received": response_received,
-		})
+		log = frappe.get_doc(
+			{
+				"doctype": "Impact Analyzer Log",
+				"run_id": run_id or "Direct API Call",
+				"stage": stage,
+				"model": model,
+				"request_payload": request_payload,
+				"response_payload": response_payload,
+			}
+		)
 		log.insert(ignore_permissions=True)
 		frappe.db.commit()  # nosemgrep
-	except Exception:
-		pass
+	except Exception as exc:
+		# Logging failure should never break the analysis pipeline
+		frappe.log_error(f"Failed to log Gemini API call: {exc}", "Impact Analyzer Logger")
 
 
 def _generate_mock_response(prompt: str, stage: str) -> str:
-	"""Generate appropriate mock response JSON/text based on the pipeline stage."""
-	if "Interpreting" in stage or "Interpreter" in stage:
-		return json.dumps(
+	"""Produce a plausible mock response for local dev and automated testing."""
+	if stage == "Interpretation":
+		return json.dumps({
+			"app": "frappe",
+			"doctype": "User",
+			"fields": ["email", "first_name"],
+			"functions": [],
+			"files": [],
+			"confidence": 0.95,
+			"clarification_needed": None,
+		})
+	elif stage == "Drafting":
+		return json.dumps([
 			{
-				"app": "frappe",
-				"doctype": "User",
-				"fields": ["first_name", "last_name", "email"],
-				"functions": ["validate_email"],
-				"files": ["frappe/core/doctype/user/user.py"],
-				"confidence": 0.9,
-				"clarification_needed": "",
-			},
-			indent=2,
-		)
-	elif "Drafting" in stage or "Drafter" in stage:
-		return json.dumps(
-			[
-				{
-					"file": "frappe/core/doctype/user/user.py",
-					"line": 42,
-					"source": "File",
-					"impact": "High",
-					"reason": "Function validate_email is called during document validation.",
-					"suggested_action": "Ensure parameter compatibility after renaming.",
-					"snippet": "def validate_email(self):",
-					"usage_type": "Python Function Def",
-				}
-			],
-			indent=2,
-		)
-	elif "Formatting" in stage or "Formatter" in stage:
+				"file": "frappe/core/doctype/user/user.py",
+				"line": 10,
+				"source": "File",
+				"impact": "Medium",
+				"reason": "Referenced in controller logic",
+				"suggested_action": "Verify field access",
+				"snippet": "self.email = email",
+				"usage_type": "Python Field Write (Assignment)",
+			}
+		])
+	elif stage == "Formatting":
 		return (
-			"<p><strong>Impact Analysis Report (Mock):</strong> "
-			"Changing the target field/function will affect validation hooks and UI logic. "
-			"Recommend thorough testing before deploying this change.</p>"
+			"<p><strong>Executive Summary (Mock):</strong> Analysis completed successfully. "
+			"Review the verified changes below before applying modifications.</p>"
 		)
-	return "Mock response for prompt."
+	return ""

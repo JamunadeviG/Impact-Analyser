@@ -68,8 +68,7 @@
   {
    "fieldname": "snippet",
    "fieldtype": "Code",
-   "label": "Snippet",
-   "options": "Python"
+   "label": "Snippet"
   }
  ],
  "grid_page_length": 50,
