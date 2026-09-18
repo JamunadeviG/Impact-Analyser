@@ -73,7 +73,7 @@ def analyze(app=None, doctype=None, filenames=None, functions=None, prompt=None)
 	frappe.db.commit()  # nosemgrep
 
 	# ── Publish initial realtime event ─────────────────────────────────────────
-	_publish(run.name, "Queued", "Queued — waiting for background worker…")
+	_publish(run.name, "Queued", "Queued — waiting for background worker…", user=run.triggered_by)
 
 	# ── Enqueue background pipeline ────────────────────────────────────────────
 	frappe.enqueue(
@@ -95,10 +95,18 @@ def get_run(run_id):
 	return frappe.get_doc("Impact Analysis Run", run_id).as_dict()
 
 
-def _publish(run_id, status, message=""):
+def _publish(run_id, status, message="", user=None):
 	"""Publish a realtime progress event for the given run."""
+	if user:
+		frappe.publish_realtime(
+			"impact_analyzer_progress",
+			{"run_id": run_id, "status": status, "message": message},
+			user=user,
+			after_commit=False,
+		)
 	frappe.publish_realtime(
 		"impact_analyzer_progress",
 		{"run_id": run_id, "status": status, "message": message},
 		after_commit=False,
 	)
+	frappe.logger("impact_analyser").info(f"Published realtime [{status}] for {run_id}: {message}")
