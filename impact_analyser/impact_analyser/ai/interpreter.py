@@ -1,3 +1,4 @@
+
 import json
 import re
 import frappe
@@ -154,6 +155,7 @@ def _empty_extraction(run) -> dict:
 		"confidence": 1.0,
 		"clarification_needed": "",
 	}
+>>>>>>> main
 =======
 # Copyright (c) 2026, Team Thendral and contributors
 # For license information, please see license.txt
@@ -375,4 +377,3 @@ def _empty_extraction(run) -> dict:
 		"confidence": 1.0,
 		"clarification_needed": "",
 	}
->>>>>>> 3871c81 (latest ui process and ai update)
