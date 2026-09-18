@@ -33,11 +33,12 @@ class ImpactAnalyzerPage {
 	constructor(page, wrapper) {
 		this.page = page;
 		this.wrapper = wrapper;
-		// Use page.main — the correct Frappe v15 content area jQuery object
 		this.$main = page.main;
 		this.current_run_id = null;
 		this.all_changes = [];
 		this.active_filter = "all";
+		this.poll_timer = null;
+		this.poll_count = 0;
 
 		this._inject_google_font();
 		this._render();
@@ -81,7 +82,7 @@ class ImpactAnalyzerPage {
 					</div>
 					<div class="ia-field">
 						<label>DocType Target</label>
-						<input id="ia-doctype-input" type="text" placeholder="e.g. Sales Invoice" autocomplete="off" />
+						<input id="ia-doctype-input" type="text" placeholder="e.g. Airplane Ticket" autocomplete="off" />
 						<div id="ia-doctype-suggestions" style="position:relative;"></div>
 					</div>
 					<div class="ia-field">
@@ -90,7 +91,7 @@ class ImpactAnalyzerPage {
 					</div>
 					<div class="ia-field">
 						<label>Target Functions / Symbols <span style="opacity:.5;font-weight:400;">(optional)</span></label>
-						<input id="ia-functions-input" type="text" placeholder="e.g. get_sales_data, validate" />
+						<input id="ia-functions-input" type="text" placeholder="e.g. validate, get_tickets" />
 					</div>
 				</div>
 
@@ -98,7 +99,7 @@ class ImpactAnalyzerPage {
 
 				<div class="ia-field ia-field-full">
 					<label>Prompt <span style="opacity:.5;font-weight:400;">(AI Interpretation path)</span></label>
-					<textarea id="ia-prompt-input" placeholder='e.g. "I want to rename the field customer_name to full_name in Sales Invoice. What will break?"'></textarea>
+					<textarea id="ia-prompt-input" placeholder='e.g. "What breaks if I rename flight to flight_code in Airplane Ticket?" or "I want to know available fields"'></textarea>
 				</div>
 
 				<hr class="ia-divider" />
@@ -141,7 +142,7 @@ class ImpactAnalyzerPage {
 				</div>
 				<div class="ia-status-msg" id="ia-status-msg">Queued — starting analysis…</div>
 				<div style="text-align:center;margin-top:12px;">
-					<a id="ia-run-link" href="#" style="font-size:12px;color:rgba(255,255,255,0.35);text-decoration:none;">
+					<a id="ia-run-link" href="#" style="font-size:12px;color:rgba(255,255,255,0.45);text-decoration:none;">
 						View Run Document →
 					</a>
 				</div>
@@ -153,7 +154,7 @@ class ImpactAnalyzerPage {
 
 				<div class="ia-summary-header" id="ia-summary-box">
 					<h3 id="ia-result-title">Analysis Complete</h3>
-					<p id="ia-result-summary"></p>
+					<div id="ia-result-summary" style="margin-top:12px; line-height:1.6;"></div>
 					<div class="ia-stat-row" id="ia-stat-row"></div>
 				</div>
 
@@ -185,10 +186,8 @@ class ImpactAnalyzerPage {
 
 	// ── Bind events ───────────────────────────────────────────────────────────
 	_bind_events() {
-		// Load app list
 		this._load_apps();
 
-		// Path hint on input
 		const update_hint = () => {
 			const prompt = $("#ia-prompt-input").val().trim();
 			const doctype = $("#ia-doctype-input").val().trim();
@@ -261,11 +260,10 @@ class ImpactAnalyzerPage {
 	// ── Load app list ─────────────────────────────────────────────────────────
 	_load_apps() {
 		frappe.call({
-			method: "frappe.client.get_list",
-			args: { doctype: "Module Def", fields: ["app_name"], limit: 50 },
+			method: "impact_analyser.api.get_apps_list",
 			callback: (r) => {
 				if (!r.message) return;
-				const apps = [...new Set(r.message.map(m => m.app_name))].sort();
+				const apps = r.message;
 				const $sel = $("#ia-app-select");
 				apps.forEach(a => $sel.append(`<option value="${a}">${a}</option>`));
 			},
@@ -293,7 +291,7 @@ class ImpactAnalyzerPage {
 		$("#ia-input-card").hide();
 		$("#ia-results-card").hide();
 		$("#ia-progress-card").show();
-		this._set_progress(0, "Queued", "Queued — sending to background worker…");
+		this._set_progress(5, "Queued", "Queued — starting pipeline…");
 		$("#ia-analyze-btn").prop("disabled", true);
 
 		frappe.call({
@@ -301,15 +299,18 @@ class ImpactAnalyzerPage {
 			args: { app, doctype, filenames, functions, prompt },
 			callback: (r) => {
 				if (r.exc || !r.message) {
-					this._set_failed("Failed to queue analysis. Check console for details.");
+					this._set_failed("Failed to queue analysis. Check server logs.");
 					return;
 				}
 				const { run_id } = r.message;
 				this.current_run_id = run_id;
+				console.log("[Impact Analyzer] Run initialized:", run_id);
 				$("#ia-run-link")
 					.attr("href", `/app/impact-analysis-run/${run_id}`)
 					.text(`View Run ${run_id} →`);
-				this._set_progress(5, "Queued", `Run ${run_id} queued — waiting for worker…`);
+
+				// Start polling fallback immediately to handle any missed realtime events
+				this._start_polling(run_id);
 			},
 			error: (r) => {
 				this._set_failed("Server error — check error log.");
@@ -320,6 +321,15 @@ class ImpactAnalyzerPage {
 	// ── Realtime subscription ─────────────────────────────────────────────────
 	_subscribe_realtime() {
 		frappe.realtime.on("impact_analyzer_progress", (data) => {
+			console.log("[Impact Analyzer Realtime Event Received]", data);
+
+			if (!this.current_run_id && data.run_id) {
+				this.current_run_id = data.run_id;
+				$("#ia-run-link")
+					.attr("href", `/app/impact-analysis-run/${data.run_id}`)
+					.text(`View Run ${data.run_id} →`);
+			}
+
 			if (data.run_id !== this.current_run_id) return;
 
 			const stage_progress = {
@@ -336,14 +346,67 @@ class ImpactAnalyzerPage {
 			const msg = data.message || `Status: ${data.status}`;
 
 			if (data.status === "Failed") {
+				this._stop_polling();
 				this._set_failed(msg);
 			} else if (data.status === "Complete") {
+				this._stop_polling();
 				this._set_progress(100, "Complete", "✓ Analysis complete — loading report…");
-				setTimeout(() => this._load_report(data.run_id), 800);
+				setTimeout(() => this._load_report(data.run_id), 500);
 			} else {
 				this._set_progress(pct, data.status, msg);
 			}
 		});
+	}
+
+	// ── Polling Fallback ──────────────────────────────────────────────────────
+	_start_polling(run_id) {
+		this._stop_polling();
+		this.poll_count = 0;
+		this.poll_timer = setInterval(() => {
+			this.poll_count++;
+			if (this.poll_count > 60) {
+				this._stop_polling();
+				return;
+			}
+			frappe.call({
+				method: "frappe.client.get",
+				args: { doctype: "Impact Analysis Run", name: run_id },
+				callback: (r) => {
+					if (!r.message) return;
+					const run = r.message;
+					console.log(`[Impact Analyzer Poll #${this.poll_count}] Run Status:`, run.status);
+
+					if (run.status === "Complete") {
+						this._stop_polling();
+						this._set_progress(100, "Complete", "✓ Analysis complete — loading report…");
+						this.all_changes = run.changes || [];
+						this._render_report(run);
+						$("#ia-progress-card").hide();
+						$("#ia-results-card").show();
+					} else if (run.status === "Failed") {
+						this._stop_polling();
+						this._set_failed(run.summary || "Pipeline execution failed.");
+					} else {
+						const stage_progress = {
+							Queued: 5,
+							Interpreting: 20,
+							Scanning: 45,
+							Drafting: 70,
+							Formatting: 90,
+						};
+						const pct = stage_progress[run.status] || 10;
+						this._set_progress(pct, run.status, `Status: ${run.status}`);
+					}
+				}
+			});
+		}, 1800);
+	}
+
+	_stop_polling() {
+		if (this.poll_timer) {
+			clearInterval(this.poll_timer);
+			this.poll_timer = null;
+		}
 	}
 
 	// ── Progress helpers ──────────────────────────────────────────────────────
@@ -368,15 +431,11 @@ class ImpactAnalyzerPage {
 	}
 
 	_set_failed(msg) {
+		this._stop_polling();
 		this._set_progress(100, "Formatting", msg);
 		$(".ia-step").last().prev().addClass("failed").removeClass("active done");
-		$("#ia-status-msg").css("color", "#f87171").text("❌ " + msg);
+		$("#ia-status-msg").css("color", "#f87171").html("❌ " + msg);
 		$("#ia-analyze-btn").prop("disabled", false);
-		// Show input card again after 2s
-		setTimeout(() => {
-			$("#ia-progress-card").hide();
-			$("#ia-input-card").show();
-		}, 3000);
 	}
 
 	// ── Load and render report ────────────────────────────────────────────────
@@ -396,26 +455,40 @@ class ImpactAnalyzerPage {
 	}
 
 	_render_report(run) {
-		// Summary
-		const summary_text = run.summary
-			? run.summary.replace(/<[^>]+>/g, "")  // strip html tags
-			: "Analysis complete. Review the changes below.";
 		$("#ia-result-title").text(`Impact Report — ${run.name}`);
-		$("#ia-result-summary").text(summary_text.slice(0, 280) + (summary_text.length > 280 ? "…" : ""));
+		$("#ia-result-summary").html(run.summary || "<p>Analysis complete. Review the results below.</p>");
 
-		// Stats
+		// Check if this was a list_fields schema query
+		let is_list_fields = false;
+		if (run.scan_report) {
+			try {
+				const sr = typeof run.scan_report === "string" ? JSON.parse(run.scan_report) : run.scan_report;
+				if (sr.intent === "list_fields") {
+					is_list_fields = true;
+				}
+			} catch (e) {}
+		}
+
 		const changes = run.changes || [];
 		const high = changes.filter(c => c.impact === "High").length;
 		const med  = changes.filter(c => c.impact === "Medium").length;
 		const low  = changes.filter(c => c.impact === "Low").length;
-		$("#ia-stat-row").html(`
-			<div class="ia-stat"><div class="ia-stat-num" style="color:#f87171;">${high}</div><div class="ia-stat-lbl">High Impact</div></div>
-			<div class="ia-stat"><div class="ia-stat-num" style="color:#fb923c;">${med}</div><div class="ia-stat-lbl">Medium Impact</div></div>
-			<div class="ia-stat"><div class="ia-stat-num" style="color:#60a5fa;">${low}</div><div class="ia-stat-lbl">Low Impact</div></div>
-			<div class="ia-stat"><div class="ia-stat-num">${changes.length}</div><div class="ia-stat-lbl">Total Changes</div></div>
-		`);
 
-		this._render_changes();
+		if (is_list_fields) {
+			$("#ia-stat-row").hide();
+			$("#ia-filter-bar").hide();
+			$("#ia-change-list").hide();
+		} else {
+			$("#ia-stat-row").show().html(`
+				<div class="ia-stat"><div class="ia-stat-num" style="color:#f87171;">${high}</div><div class="ia-stat-lbl">High Impact</div></div>
+				<div class="ia-stat"><div class="ia-stat-num" style="color:#fb923c;">${med}</div><div class="ia-stat-lbl">Medium Impact</div></div>
+				<div class="ia-stat"><div class="ia-stat-num" style="color:#60a5fa;">${low}</div><div class="ia-stat-lbl">Low Impact</div></div>
+				<div class="ia-stat"><div class="ia-stat-num">${changes.length}</div><div class="ia-stat-lbl">Total Changes</div></div>
+			`);
+			$("#ia-filter-bar").show();
+			$("#ia-change-list").show();
+			this._render_changes();
+		}
 	}
 
 	_render_changes() {
@@ -475,6 +548,7 @@ class ImpactAnalyzerPage {
 
 	// ── Reset form ────────────────────────────────────────────────────────────
 	_reset() {
+		this._stop_polling();
 		this.current_run_id = null;
 		this.all_changes = [];
 		this.active_filter = "all";

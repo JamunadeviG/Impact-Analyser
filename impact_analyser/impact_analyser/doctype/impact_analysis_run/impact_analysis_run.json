@@ -71,7 +71,8 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Status",
-   "options": "Queued\nInterpreting\nScanning\nDrafting\nFormatting\nComplete\nFailed"
+   "options": "Queued\nInterpreting\nScanning\nDrafting\nFormatting\nComplete\nFailed",
+   "allow_on_submit": 1
   },
   {
    "default": "__user",
@@ -100,7 +101,8 @@
    "fieldname": "summary",
    "fieldtype": "Text Editor",
    "in_global_search": 1,
-   "label": "Summary"
+   "label": "Summary",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "changes_section",
@@ -111,7 +113,8 @@
    "fieldname": "changes",
    "fieldtype": "Table",
    "label": "Changes",
-   "options": "Impact Analysis Change"
+   "options": "Impact Analysis Change",
+   "allow_on_submit": 1
   },
   {
    "collapsed": 1,
@@ -123,13 +126,15 @@
    "fieldname": "extraction_result",
    "fieldtype": "Code",
    "label": "Extraction Result",
-   "options": "JSON"
+   "options": "JSON",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "scan_report",
    "fieldtype": "Code",
    "label": "Scan Report",
-   "options": "JSON"
+   "options": "JSON",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "amended_from",

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
  "actions": [],
  "creation": "2026-09-16 12:00:00.000000",
@@ -71,3 +72,78 @@
  "states": [],
  "track_changes": 1
 }
+=======
+{
+ "actions": [],
+ "creation": "2026-09-16 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "gemini_settings_section",
+  "gemini_api_key",
+  "interpreter_model",
+  "report_model",
+  "enable_mock_fallback"
+ ],
+ "fields": [
+  {
+   "fieldname": "gemini_settings_section",
+   "fieldtype": "Section Break",
+   "label": "Gemini AI Settings"
+  },
+  {
+   "description": "Google Gemini API key. If left blank, GEMINI_API_KEY environment variable will be checked.",
+   "fieldname": "gemini_api_key",
+   "fieldtype": "Password",
+   "label": "Gemini API Key"
+  },
+  {
+   "default": "openai/gpt-oss-120b",
+   "fieldname": "interpreter_model",
+   "fieldtype": "Select",
+   "label": "Interpreter Model",
+   "options": "openai/gpt-oss-120b\nopenai/gpt-oss-20b\ngemini-1.5-flash\ngemini-1.5-pro\ngemini-2.0-flash"
+  },
+  {
+   "default": "openai/gpt-oss-120b",
+   "fieldname": "report_model",
+   "fieldtype": "Select",
+   "label": "Report Model",
+   "options": "openai/gpt-oss-120b\nopenai/gpt-oss-20b\ngemini-1.5-flash\ngemini-1.5-pro\ngemini-2.0-flash"
+  },
+  {
+   "default": "0",
+   "description": "Allow mock fallback responses when API key is not configured (useful for development and automated testing).",
+   "fieldname": "enable_mock_fallback",
+   "fieldtype": "Check",
+   "label": "Enable Mock Fallback"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-09-16 16:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Impact Analyser",
+ "name": "Impact Analyzer Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
+>>>>>>> 3871c81 (latest ui process and ai update)
