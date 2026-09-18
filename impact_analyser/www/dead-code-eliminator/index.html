@@ -5,10 +5,11 @@
 	.dce-wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; color: #24292f; }
 	.dce-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
 	.dce-header h1 { font-size: 22px; font-weight: 650; margin: 0; }
-	.dce-btn { display: inline-block; padding: 7px 14px; border-radius: 6px; font-size: 13px; font-weight: 550; text-decoration: none; border: 1px solid #d0d7de; background: #fff; color: #24292f; cursor: pointer; }
+	.dce-btn { display: inline-block; padding: 7px 14px; border-radius: 6px; font-size: 13px; font-weight: 550; text-decoration: none; border: 1px solid #d0d7de; background: #fff; color: #24292f; cursor: pointer; line-height: 1.4; }
 	.dce-btn:hover { background: #f6f8fa; text-decoration: none; color: #24292f; }
-	.dce-btn-primary { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
-	.dce-btn-primary:hover { background: #333; color: #fff; }
+	.dce-btn-primary { background: #1a1a1a; color: #fff !important; border-color: #1a1a1a; }
+	.dce-btn-primary:hover { background: #333; color: #fff !important; }
+	.dce-btn:disabled, .dce-btn[disabled] { opacity: .55; cursor: not-allowed; pointer-events: none; }
 
 	.dce-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #d0d7de; border-radius: 8px; overflow: hidden; }
 	.dce-table th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: #57606a; background: #f6f8fa; padding: 10px 14px; border-bottom: 1px solid #d0d7de; }
@@ -56,7 +57,121 @@
 	.dce-markdown { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 8px; padding: 16px 18px; font-size: 14px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
 	.dce-diff-wrap { border: 1px solid #d0d7de; border-radius: 8px; overflow: hidden; }
 	.dce-raw-diff { background: #0d1117; color: #c9d1d9; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; padding: 14px 16px; border-radius: 8px; overflow-x: auto; white-space: pre; max-height: 400px; overflow-y: auto; }
+
+	/* ========== MODAL ========== */
+	.dce-modal-overlay {
+		display: none;
+		position: fixed; inset: 0;
+		background: rgba(0,0,0,.45);
+		z-index: 1000;
+		align-items: center;
+		justify-content: center;
+		padding: 16px;
+	}
+	.dce-modal-overlay.open { display: flex; }
+	.dce-modal {
+		background: #fff;
+		border-radius: 10px;
+		box-shadow: 0 8px 32px rgba(0,0,0,.24);
+		width: 100%;
+		max-width: 520px;
+		padding: 28px 28px 24px;
+		position: relative;
+		animation: dce-pop .15s ease;
+	}
+	@keyframes dce-pop { from { transform: scale(.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+	.dce-modal-close {
+		position: absolute; top: 14px; right: 16px;
+		background: none; border: none; font-size: 20px; line-height: 1; cursor: pointer;
+		color: #57606a;
+	}
+	.dce-modal-close:hover { color: #24292f; }
+	.dce-modal h2 { font-size: 17px; font-weight: 650; margin: 0 0 20px; }
+
+	.dce-form-row { margin-bottom: 16px; }
+	.dce-form-label { display: block; font-size: 13px; font-weight: 600; color: #24292f; margin-bottom: 5px; }
+	.dce-form-label .req { color: #cf222e; }
+	.dce-form-input, .dce-form-select {
+		width: 100%; box-sizing: border-box;
+		padding: 7px 10px; border: 1px solid #d0d7de; border-radius: 6px;
+		font-size: 14px; color: #24292f; background: #fff;
+		outline: none; transition: border-color .15s;
+	}
+	.dce-form-input:focus, .dce-form-select:focus { border-color: #0969da; box-shadow: 0 0 0 3px rgba(9,105,218,.12); }
+	.dce-form-hint { font-size: 12px; color: #57606a; margin-top: 4px; }
+
+	.dce-form-section { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #57606a; margin: 20px 0 10px; padding-bottom: 6px; border-bottom: 1px solid #eaeef2; }
+	.dce-form-check { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+	.dce-form-check input[type=checkbox] { margin-top: 2px; width: 15px; height: 15px; flex-shrink: 0; accent-color: #1a7f37; cursor: pointer; }
+	.dce-form-check label { font-size: 13px; color: #24292f; cursor: pointer; line-height: 1.5; }
+
+	.dce-modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
+
+	.dce-scan-status { display: none; margin-top: 14px; padding: 10px 14px; border-radius: 6px; font-size: 13px; }
+	.dce-scan-status.info { background: #ddf4ff; color: #0550ae; border: 1px solid #54aeff; display: flex; align-items: center; gap: 8px; }
+	.dce-scan-status.error { background: #ffebe9; color: #82071e; border: 1px solid #ff8182; }
+
+	.dce-spinner {
+		display: inline-block; width: 14px; height: 14px; flex-shrink: 0;
+		border: 2px solid rgba(9,105,218,.25); border-top-color: #0969da;
+		border-radius: 50%; animation: dce-spin .7s linear infinite;
+	}
+	@keyframes dce-spin { to { transform: rotate(360deg); } }
 </style>
+
+<!-- ========== NEW SCAN MODAL ========== -->
+<div class="dce-modal-overlay" id="dce-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="dce-modal-title">
+	<div class="dce-modal">
+		<button class="dce-modal-close" id="dce-modal-close" aria-label="Close">&times;</button>
+		<h2 id="dce-modal-title">&#9889; New Dead Code Scan</h2>
+
+		<form id="dce-scan-form" autocomplete="off">
+
+			<div class="dce-form-row">
+				<label class="dce-form-label" for="dce-target-app">Target Frappe App <span class="req">*</span></label>
+				<select class="dce-form-select" id="dce-target-app" name="target_app" required>
+					<option value="">— select an app —</option>
+					{% for app in available_apps %}
+					<option value="{{ app }}">{{ app }}</option>
+					{% endfor %}
+				</select>
+				<div class="dce-form-hint">Choose the Frappe app to scan, or type a custom name below.</div>
+			</div>
+
+			<div class="dce-form-row">
+				<label class="dce-form-label" for="dce-custom-app">Custom App Name (if not listed above)</label>
+				<input class="dce-form-input" type="text" id="dce-custom-app" name="custom_app"
+					placeholder="e.g. airplane_mode" autocomplete="off" />
+				<div class="dce-form-hint">Overrides the dropdown selection when filled in.</div>
+			</div>
+
+			<div class="dce-form-row">
+				<label class="dce-form-label" for="dce-app-path">App Directory Path <span style="font-weight:400;color:#57606a;">(Optional Override)</span></label>
+				<input class="dce-form-input" type="text" id="dce-app-path" name="app_path"
+					placeholder="Leave blank to auto-detect" autocomplete="off" />
+				<div class="dce-form-hint">Absolute path to the app root — only needed if auto-detection fails.</div>
+			</div>
+
+			<div class="dce-form-section">Frappe Framework Smart Filters &amp; Guardrails</div>
+
+			<div class="dce-form-check">
+				<input type="checkbox" id="dce-chk-controller" name="scan_custom_controller_methods" checked />
+				<label for="dce-chk-controller">Detect Uncalled Custom Methods in DocType Controllers (e.g. summa functions)</label>
+			</div>
+			<div class="dce-form-check">
+				<input type="checkbox" id="dce-chk-helpers" name="scan_standalone_helpers" checked />
+				<label for="dce-chk-helpers">Detect Unused Standalone Helper Functions &amp; Constants</label>
+			</div>
+
+			<div class="dce-scan-status" id="dce-scan-status"></div>
+
+			<div class="dce-modal-footer">
+				<button type="button" class="dce-btn" id="dce-modal-cancel">Cancel</button>
+				<button type="submit" class="dce-btn dce-btn-primary" id="dce-scan-btn">&#9889; Scan Entire App</button>
+			</div>
+		</form>
+	</div>
+</div>
 
 <div class="dce-wrap">
 
@@ -64,7 +179,7 @@
 		<!-- ============ LIST VIEW ============ -->
 		<div class="dce-header">
 			<h1>Dead Code Eliminator</h1>
-			<a class="dce-btn dce-btn-primary" href="/app/dead-code-eliminator/new">+ New Scan</a>
+			<button class="dce-btn dce-btn-primary" id="dce-open-modal-btn" onclick="dceOpenModal()">+ New Scan</button>
 		</div>
 
 		{% if scans %}
@@ -119,11 +234,14 @@
 
 		<div class="dce-header">
 			<h1>{{ doc.title or doc.name }}</h1>
-			{% if doc.status == "Completed" %}
-				<span class="dce-status dce-status-completed">Completed</span>
-			{% else %}
-				<span class="dce-status dce-status-other">{{ doc.status }}</span>
-			{% endif %}
+			<div style="display:flex;gap:10px;align-items:center;">
+				{% if doc.status == "Completed" %}
+					<span class="dce-status dce-status-completed">Completed</span>
+				{% else %}
+					<span class="dce-status dce-status-other">{{ doc.status }}</span>
+				{% endif %}
+				<button class="dce-btn dce-btn-primary" onclick="dceOpenModal()">+ New Scan</button>
+			</div>
 		</div>
 
 		<!-- Mirrors the doctype's top section: Target Frappe App / App Directory Path / Status / Guardrails -->
@@ -220,4 +338,97 @@
 	{% endif %}
 
 </div>
+
+<script>
+/* ========== Modal helpers ========== */
+function dceOpenModal() {
+	document.getElementById('dce-modal-overlay').classList.add('open');
+	document.getElementById('dce-target-app').focus();
+}
+
+function dceCloseModal() {
+	document.getElementById('dce-modal-overlay').classList.remove('open');
+	// Reset status message and form state
+	var status = document.getElementById('dce-scan-status');
+	status.style.display = 'none';
+	status.className = 'dce-scan-status';
+	document.getElementById('dce-scan-btn').disabled = false;
+	document.getElementById('dce-scan-btn').textContent = '⚡ Scan Entire App';
+}
+
+/* Close on overlay click or Escape key */
+document.getElementById('dce-modal-overlay').addEventListener('click', function(e) {
+	if (e.target === this) dceCloseModal();
+});
+document.getElementById('dce-modal-close').addEventListener('click', dceCloseModal);
+document.getElementById('dce-modal-cancel').addEventListener('click', dceCloseModal);
+document.addEventListener('keydown', function(e) {
+	if (e.key === 'Escape') dceCloseModal();
+});
+
+/* ========== Scan form submission ========== */
+document.getElementById('dce-scan-form').addEventListener('submit', function(e) {
+	e.preventDefault();
+
+	var dropdown = document.getElementById('dce-target-app');
+	var customInput = document.getElementById('dce-custom-app');
+	var targetApp = (customInput.value.trim() || dropdown.value || '').trim();
+
+	if (!targetApp) {
+		showStatus('error', 'Please select or enter a Target Frappe App.');
+		return;
+	}
+
+	var appPath = document.getElementById('dce-app-path').value.trim();
+	var scanController = document.getElementById('dce-chk-controller').checked ? 1 : 0;
+	var scanHelpers = document.getElementById('dce-chk-helpers').checked ? 1 : 0;
+
+	var btn = document.getElementById('dce-scan-btn');
+	btn.disabled = true;
+	btn.textContent = 'Scanning…';
+
+	showStatus('info', '<span class="dce-spinner"></span>&nbsp; Traversing all DocTypes, .py, and .js files in <strong>' + esc(targetApp) + '</strong>. Analyzing AST &amp; enforcing Frappe Framework guardrails…');
+
+	frappe.call({
+		method: 'impact_analyser.impact_analyser.doctype.dead_code_eliminator.dead_code_eliminator.create_and_run_scan_api',
+		args: {
+			target_app: targetApp,
+			app_path: appPath || null,
+			scan_custom_controller_methods: scanController,
+			scan_standalone_helpers: scanHelpers
+		},
+		callback: function(r) {
+			if (r.exc) {
+				showStatus('error', 'Error: ' + (r._server_messages ? JSON.parse(r._server_messages)[0] : 'An unexpected error occurred.'));
+				btn.disabled = false;
+				btn.textContent = '⚡ Scan Entire App';
+				return;
+			}
+			var result = r.message || {};
+			var scanName = result.scan_name;
+			if (scanName) {
+				showStatus('info', '<span class="dce-spinner"></span>&nbsp; Scan complete! Redirecting to results…');
+				setTimeout(function() {
+					window.location.href = '/dead-code-eliminator?scan=' + encodeURIComponent(scanName);
+				}, 600);
+			} else {
+				showStatus('error', 'Scan ran but no document name was returned. Please check the scan list.');
+				btn.disabled = false;
+				btn.textContent = '⚡ Scan Entire App';
+			}
+		}
+	});
+});
+
+function showStatus(type, html) {
+	var el = document.getElementById('dce-scan-status');
+	el.className = 'dce-scan-status ' + type;
+	el.innerHTML = html;
+	el.style.display = type === 'info' ? 'flex' : 'block';
+}
+
+function esc(s) {
+	return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
 {% endblock %}

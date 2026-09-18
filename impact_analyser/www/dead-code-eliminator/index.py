@@ -1,5 +1,6 @@
 import frappe
 from frappe import _
+import os
 
 
 def get_context(context):
@@ -25,6 +26,22 @@ def get_context(context):
 		order_by='modified desc',
 		limit_page_length=50,
 	)
+
+	# Collect available apps from bench so the UI can populate the dropdown.
+	available_apps = []
+	try:
+		available_apps = list(frappe.get_installed_apps())
+	except Exception:
+		pass
+	try:
+		bench_apps_dir = os.path.join(frappe.get_bench_path(), 'apps')
+		if os.path.isdir(bench_apps_dir):
+			for name in sorted(os.listdir(bench_apps_dir)):
+				if os.path.isdir(os.path.join(bench_apps_dir, name)) and name not in available_apps:
+					available_apps.append(name)
+	except Exception:
+		pass
+	context.available_apps = available_apps
 
 	context.doc = None
 	context.inventory = []
