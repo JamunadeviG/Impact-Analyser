@@ -67,12 +67,7 @@
   },
   {
    "fieldname": "snippet",
-<<<<<<< HEAD
-   "fieldtype": "Code",
-=======
-   "fieldtype": "Long Text",
->>>>>>> 3871c81 (latest ui process and ai update)
-   "label": "Snippet"
+   "fieldtype": "Long Text"
   }
  ],
  "grid_page_length": 50,
