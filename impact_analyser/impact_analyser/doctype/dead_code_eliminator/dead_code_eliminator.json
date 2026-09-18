@@ -11,15 +11,10 @@
   "col_break_1",
   "status",
   "enable_ai_verification",
-  "ai_provider",
   "section_scan_options",
   "scan_custom_controller_methods",
   "scan_standalone_helpers",
-  "scan_unused_imports",
   "col_break_options",
-  "ignore_test_files",
-  "ignore_doctype_classes",
-  "ignore_migration_patches",
   "section_metrics",
   "total_files_scanned",
   "total_lines_scanned",
@@ -69,14 +64,6 @@
    "label": "Enable AI Frappe Semantic Verification"
   },
   {
-   "default": "Frappe Semantic AI",
-   "depends_on": "eval:doc.enable_ai_verification==1",
-   "fieldname": "ai_provider",
-   "fieldtype": "Select",
-   "label": "AI Engine",
-   "options": "Frappe Semantic AI\nGoogle Gemini\nOpenAI"
-  },
-  {
    "fieldname": "section_scan_options",
    "fieldtype": "Section Break",
    "label": "Frappe Framework Smart Filters & Guardrails"
@@ -94,32 +81,8 @@
    "label": "Detect Unused Standalone Helper Functions & Constants"
   },
   {
-   "default": "1",
-   "fieldname": "scan_unused_imports",
-   "fieldtype": "Check",
-   "label": "Detect Unused Imports"
-  },
-  {
    "fieldname": "col_break_options",
    "fieldtype": "Column Break"
-  },
-  {
-   "default": "1",
-   "fieldname": "ignore_test_files",
-   "fieldtype": "Check",
-   "label": "Ignore Unit/Integration Test Classes (test_*.py)"
-  },
-  {
-   "default": "1",
-   "fieldname": "ignore_doctype_classes",
-   "fieldtype": "Check",
-   "label": "Ignore DocType Controller Classes (class MyDoc(Document))"
-  },
-  {
-   "default": "1",
-   "fieldname": "ignore_migration_patches",
-   "fieldtype": "Check",
-   "label": "Ignore Migration Patches (patches/*.py execute())"
   },
   {
    "fieldname": "section_metrics",
@@ -215,7 +178,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-17 16:45:09.893799",
+ "modified": "2026-09-18 08:53:09.423623",
  "modified_by": "Administrator",
  "module": "Impact Analyser",
  "name": "Dead Code Eliminator",
