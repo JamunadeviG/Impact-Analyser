@@ -1,0 +1,243 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "App Scan -.###",
+ "creation": "2026-09-17 12:55:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "target_app",
+  "app_path",
+  "col_break_1",
+  "status",
+  "enable_ai_verification",
+  "ai_provider",
+  "section_scan_options",
+  "scan_custom_controller_methods",
+  "scan_standalone_helpers",
+  "scan_unused_imports",
+  "col_break_options",
+  "ignore_test_files",
+  "ignore_doctype_classes",
+  "ignore_migration_patches",
+  "section_metrics",
+  "total_files_scanned",
+  "total_lines_scanned",
+  "total_dead_items",
+  "col_break_metrics",
+  "low_risk_count",
+  "medium_risk_count",
+  "high_risk_count",
+  "section_inventory",
+  "inventory",
+  "section_justification",
+  "call_path_justifications",
+  "section_diff",
+  "diff_html",
+  "unified_diff"
+ ],
+ "fields": [
+  {
+   "default": "airplane_mode",
+   "fieldname": "target_app",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Target Frappe App",
+   "reqd": 1
+  },
+  {
+   "fieldname": "app_path",
+   "fieldtype": "Data",
+   "label": "App Directory Path (Optional Override)"
+  },
+  {
+   "fieldname": "col_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Draft\nScanning Entire App\nCompleted"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_ai_verification",
+   "fieldtype": "Check",
+   "label": "Enable AI Frappe Semantic Verification"
+  },
+  {
+   "default": "Frappe Semantic AI",
+   "depends_on": "eval:doc.enable_ai_verification==1",
+   "fieldname": "ai_provider",
+   "fieldtype": "Select",
+   "label": "AI Engine",
+   "options": "Frappe Semantic AI\nGoogle Gemini\nOpenAI"
+  },
+  {
+   "fieldname": "section_scan_options",
+   "fieldtype": "Section Break",
+   "label": "Frappe Framework Smart Filters & Guardrails"
+  },
+  {
+   "default": "1",
+   "fieldname": "scan_custom_controller_methods",
+   "fieldtype": "Check",
+   "label": "Detect Uncalled Custom Methods in DocType Controllers (e.g. summa functions)"
+  },
+  {
+   "default": "1",
+   "fieldname": "scan_standalone_helpers",
+   "fieldtype": "Check",
+   "label": "Detect Unused Standalone Helper Functions & Constants"
+  },
+  {
+   "default": "1",
+   "fieldname": "scan_unused_imports",
+   "fieldtype": "Check",
+   "label": "Detect Unused Imports"
+  },
+  {
+   "fieldname": "col_break_options",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "ignore_test_files",
+   "fieldtype": "Check",
+   "label": "Ignore Unit/Integration Test Classes (test_*.py)"
+  },
+  {
+   "default": "1",
+   "fieldname": "ignore_doctype_classes",
+   "fieldtype": "Check",
+   "label": "Ignore DocType Controller Classes (class MyDoc(Document))"
+  },
+  {
+   "default": "1",
+   "fieldname": "ignore_migration_patches",
+   "fieldtype": "Check",
+   "label": "Ignore Migration Patches (patches/*.py execute())"
+  },
+  {
+   "fieldname": "section_metrics",
+   "fieldtype": "Section Break",
+   "label": "Scan Metrics & Results"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_files_scanned",
+   "fieldtype": "Int",
+   "label": "Files Scanned",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "total_lines_scanned",
+   "fieldtype": "Int",
+   "label": "Lines Analyzed",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "total_dead_items",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Dead Symbols Found",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col_break_metrics",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "low_risk_count",
+   "fieldtype": "Int",
+   "label": "Low Risk (Safe to Remove)",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "medium_risk_count",
+   "fieldtype": "Int",
+   "label": "Medium Risk",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "high_risk_count",
+   "fieldtype": "Int",
+   "label": "High Risk (Review Needed)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_inventory",
+   "fieldtype": "Section Break",
+   "label": "Section 5.A: Dead Code Inventory Table"
+  },
+  {
+   "fieldname": "inventory",
+   "fieldtype": "Table",
+   "label": "Dead Code Items",
+   "options": "Dead Code Item"
+  },
+  {
+   "fieldname": "section_justification",
+   "fieldtype": "Section Break",
+   "label": "Section 5.B: Dependency & Call Path Justification"
+  },
+  {
+   "fieldname": "call_path_justifications",
+   "fieldtype": "Markdown Editor",
+   "label": "Unreachability Proofs Across App Graph",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_diff",
+   "fieldtype": "Section Break",
+   "label": "Section 5.C: Refactored Code & Unified Diff"
+  },
+  {
+   "fieldname": "diff_html",
+   "fieldtype": "HTML",
+   "label": "Unified Diff Viewer"
+  },
+  {
+   "fieldname": "unified_diff",
+   "fieldtype": "Code",
+   "label": "Raw Unified Diff Text",
+   "options": "Diff",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-09-17 16:45:09.893799",
+ "modified_by": "Administrator",
+ "module": "Impact Analyser",
+ "name": "Dead Code Eliminator",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
