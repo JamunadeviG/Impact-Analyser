@@ -67,7 +67,8 @@
   },
   {
    "fieldname": "snippet",
-   "fieldtype": "Long Text"
+   "fieldtype": "Long Text",
+   "label": "Snippet"
   }
  ],
  "grid_page_length": 50,
