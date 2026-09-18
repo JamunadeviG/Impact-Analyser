@@ -10,7 +10,6 @@
   "app_path",
   "col_break_1",
   "status",
-  "enable_ai_verification",
   "section_scan_options",
   "scan_custom_controller_methods",
   "scan_standalone_helpers",
@@ -56,12 +55,6 @@
    "in_list_view": 1,
    "label": "Status",
    "options": "Draft\nScanning Entire App\nCompleted"
-  },
-  {
-   "default": "1",
-   "fieldname": "enable_ai_verification",
-   "fieldtype": "Check",
-   "label": "Enable AI Frappe Semantic Verification"
   },
   {
    "fieldname": "section_scan_options",
@@ -178,7 +171,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-18 08:53:09.423623",
+ "modified": "2026-09-18 12:06:28.924061",
  "modified_by": "Administrator",
  "module": "Impact Analyser",
  "name": "Dead Code Eliminator",

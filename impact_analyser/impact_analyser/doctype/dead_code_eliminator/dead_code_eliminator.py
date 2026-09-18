@@ -73,6 +73,7 @@ class DeadCodeEliminator(Document):
 
 		self._class_index = self._build_class_index(file_contents)
 		ast_cache = self._build_ast_cache(file_contents)
+		dynamic_dispatch_symbols = self._extract_dynamic_dispatch_symbols(ast_cache)
 
 		candidates = []
 		for fpath, content in file_contents.items():
@@ -87,7 +88,8 @@ class DeadCodeEliminator(Document):
 				file_contents=file_contents,
 				hooks_symbols=hooks_symbols,
 				json_symbols=json_symbols,
-				ast_cache=ast_cache
+				ast_cache=ast_cache,
+				dynamic_dispatch_symbols=dynamic_dispatch_symbols
 			)
 			candidates.extend(file_candidates)
 
@@ -268,17 +270,22 @@ class DeadCodeEliminator(Document):
 				symbols_by_dir.setdefault(directory, set()).update(matches)
 		return symbols_by_dir
 
-	def _analyze_python_file(self, fpath, rel_path, content, file_contents, hooks_symbols, json_symbols, ast_cache):
+	def _analyze_python_file(self, fpath, rel_path, content, file_contents, hooks_symbols, json_symbols, ast_cache, dynamic_dispatch_symbols=None):
 		candidates = []
+		dynamic_dispatch_symbols = dynamic_dispatch_symbols or set()
 		is_test = "test" in rel_path.lower()
 		is_patch = "patches" in rel_path.lower()
+		is_report_script = self._is_report_script(rel_path)
 
-		# Test files (test_*.py, IntegrationTest classes, etc.) are always
-		# skipped entirely — Frappe/pytest discover their contents purely
-		# by naming convention, so a reference-count check there can never
-		# produce a meaningful result, only guaranteed noise. No toggle for
-		# this; it's a structural exclusion, not a preference.
-		if is_test:
+		# Report scripts, Workspaces, and Print Formats are all dispatched
+		# by Frappe purely through directory/name convention or dynamic
+		# getattr/hook lookups (report execute(), workspace onboarding
+		# content, print format Jinja context) - never through a literal
+		# Python reference. Rather than chase every dispatch shape
+		# individually, these folders are excluded from scanning outright.
+		path_parts = {p.lower() for p in rel_path.split("/")}
+		is_excluded_module = bool(path_parts & {"report", "workspace", "print_format"})
+		if is_test or is_excluded_module:
 			return []
 
 		tree = ast_cache.get(fpath)
@@ -303,7 +310,9 @@ class DeadCodeEliminator(Document):
 				# checkbox - this isn't a preference, it's structural.
 				if not is_doc:
 					occurrences = self._count_symbol_references(node.name, file_contents, ast_cache)
-					if occurrences == 0 and node.name not in hooks_symbols and node.name not in local_json_symbols:
+					if (occurrences == 0 and node.name not in hooks_symbols
+						and node.name not in local_json_symbols
+						and node.name not in dynamic_dispatch_symbols):
 						candidates.append({
 							"symbol": node.name,
 							"type": "Class",
@@ -323,6 +332,10 @@ class DeadCodeEliminator(Document):
 							if mname.startswith("__") or mname in FRA_LIFECYCLE_HOOKS:
 								continue
 							if self._is_whitelisted(subnode):
+								continue
+							if self._is_property(subnode):
+								continue
+							if mname in dynamic_dispatch_symbols:
 								continue
 
 							occurrences = self._count_symbol_references(mname, file_contents, ast_cache)
@@ -348,9 +361,13 @@ class DeadCodeEliminator(Document):
 					continue
 				if is_patch and ignore_patches and fname_str == "execute":
 					continue
+				if is_report_script and fname_str == "execute":
+					continue
 				if self._is_whitelisted(node):
 					continue
 				if fname_str in hooks_symbols or fname_str in local_json_symbols:
+					continue
+				if fname_str in dynamic_dispatch_symbols:
 					continue
 
 				if scan_helpers:
@@ -396,6 +413,95 @@ class DeadCodeEliminator(Document):
 				return True
 
 		return False
+
+	def _is_report_script(self, rel_path):
+		"""
+		Report script files (<module>/report/<name>/<name>.py) follow the
+		same directory-based Frappe convention as DocType controllers:
+		the file's `execute(filters)` function is looked up and invoked
+		dynamically by the report engine via
+		`frappe.get_attr(dotted_path + ".execute")` — never referenced by
+		a literal Python call anywhere in the app. A "0 occurrences"
+		result on `execute` in one of these files is therefore a
+		guaranteed false positive, the same structural category as
+		DocType controllers, hooks.py entries, and @property methods.
+		"""
+		parts = rel_path.split("/")
+		if len(parts) >= 3:
+			grandparent, folder, filename = parts[-3], parts[-2], parts[-1]
+			if grandparent == "report" and filename == f"{folder}.py":
+				return True
+		return False
+
+	def _extract_dynamic_dispatch_symbols(self, ast_cache):
+		"""
+		Finds dynamic-by-name call sites across the whole app and protects
+		the target name from the dead-code check. Covers two shapes:
+
+		  1. getattr(obj, "literal_name") — the builtin two-arg form.
+		  2. frappe.get_attr(dotted_path) — Frappe's own report/hook
+		     dispatch mechanism (this is literally how the report engine
+		     calls a report's `execute`: `frappe.get_attr(dotted_path +
+		     ".execute")`; app-specific dispatch, e.g. an alternate report
+		     entry point toggled by a checkbox, commonly mirrors this same
+		     convention). The dotted path is frequently *built* rather
+		     than a single literal — `prefix + ".execute_variant"` or
+		     f"{prefix}.execute_variant" — so simple '+' concatenation and
+		     f-string literal segments are resolved too; only the trailing
+		     dotted segment is taken as the symbol name.
+
+		Either way, the target is a string, not an attribute/name
+		reference, so it's invisible to `_count_symbol_references` for the
+		same structural reason DocType controllers, hooks.py entries, and
+		@property methods are: the app graph calls it, but no code spells
+		its name as a direct Python reference. A name assembled from a
+		non-literal part at runtime (e.g. a variable holding the whole
+		suffix) still can't be resolved statically — known limitation.
+		"""
+		symbols = set()
+
+		def add_from_string(s):
+			if not isinstance(s, str) or not s:
+				return
+			tail = s.rsplit(".", 1)[-1].strip(". ")
+			if tail:
+				symbols.add(tail)
+
+		def literal_fragments(node):
+			"""Pull out literal string pieces from a plain string, simple
+			'+' concatenation, or an f-string — enough to resolve the
+			trailing dotted segment even when the prefix is dynamic."""
+			frags = []
+			if isinstance(node, ast.Constant) and isinstance(node.value, str):
+				frags.append(node.value)
+			elif isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+				frags.extend(literal_fragments(node.left))
+				frags.extend(literal_fragments(node.right))
+			elif isinstance(node, ast.JoinedStr):
+				for value in node.values:
+					if isinstance(value, ast.Constant) and isinstance(value.value, str):
+						frags.append(value.value)
+			return frags
+
+		for tree in ast_cache.values():
+			for node in ast.walk(tree):
+				if not isinstance(node, ast.Call):
+					continue
+				func = node.func
+				is_getattr = (
+					(isinstance(func, ast.Name) and func.id == "getattr")
+					or (isinstance(func, ast.Attribute) and func.attr == "getattr")
+				)
+				is_frappe_get_attr = isinstance(func, ast.Attribute) and func.attr == "get_attr"
+
+				if is_getattr and len(node.args) >= 2:
+					for frag in literal_fragments(node.args[1]):
+						add_from_string(frag)
+				elif is_frappe_get_attr and len(node.args) >= 1:
+					for frag in literal_fragments(node.args[0]):
+						add_from_string(frag)
+
+		return symbols
 
 	def _inherits_document(self, node, _visited=None):
 		if _visited is None:
@@ -463,6 +569,31 @@ class DeadCodeEliminator(Document):
 					return True
 				if isinstance(dec.func, ast.Name) and dec.func.id == "whitelist":
 					return True
+		return False
+
+	def _is_property(self, node):
+		"""
+		Excludes @property (and @cached_property, and the matching
+		@X.setter/@X.deleter/@X.getter re-definitions) from the
+		controller-method dead-code check.
+
+		These methods are invoked via attribute access (`doc.full_address`),
+		never via a `()` call, so:
+		  - Jinja/print-format template access (`{{ doc.full_address }}`)
+		    leaves no Python AST trace at all.
+		  - If the property backs a DocType `is_virtual` field, Frappe
+		    calls it internally via `getattr(doc, fieldname)` — again
+		    invisible to a Python reference scan.
+		A "0 occurrences" result on one of these is therefore a
+		guaranteed false positive, the same structural category as
+		DocType controller classes and hooks.py entries — not something
+		a reference count can ever resolve.
+		"""
+		for dec in node.decorator_list:
+			if isinstance(dec, ast.Name) and dec.id in ("property", "cached_property"):
+				return True
+			if isinstance(dec, ast.Attribute) and dec.attr in ("setter", "deleter", "getter", "cached_property"):
+				return True
 		return False
 
 	def _generate_diffs(self, files_to_patch, app_dir):
