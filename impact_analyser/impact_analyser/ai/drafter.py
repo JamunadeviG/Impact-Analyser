@@ -56,7 +56,7 @@ def draft(run, scan_report: dict) -> list:
 		return []
 
 	# Truncate scan hits if extremely large to fit in prompt token budget
-	combined_hits = file_hits[:100] + db_hits[:50]
+	combined_hits = file_hits[:30] + db_hits[:20]
 
 	prompt_payload = {
 		"target": target,

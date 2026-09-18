@@ -67,7 +67,7 @@
   },
   {
    "fieldname": "snippet",
-   "fieldtype": "Long Text",
+   "fieldtype": "Code",
    "label": "Snippet"
   }
  ],

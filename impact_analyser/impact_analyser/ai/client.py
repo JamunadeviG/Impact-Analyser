@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 import json
+import time
 import os
 import requests
 import frappe
@@ -95,8 +96,16 @@ def call_gemini(
 				],
 				"temperature": 0.2,
 			}
-			res = requests.post(url, headers=headers, json=payload, timeout=60)
-			res.raise_for_status()
+			for attempt in range(4):
+				res = requests.post(url, headers=headers, json=payload, timeout=60)
+				if res.status_code == 429 and attempt < 3:
+					# Rate limit hit -- parse reset time or sleep and retry
+					reset_s = float(res.headers.get('x-ratelimit-reset-tokens', '5s').rstrip('s') or 5)
+					sleep_time = max(3.0, min(reset_s, 15.0))
+					time.sleep(sleep_time)
+					continue
+				res.raise_for_status()
+				break
 			data = res.json()
 			response_text = data["choices"][0]["message"]["content"]
 			_log_api_call(
@@ -186,23 +195,11 @@ def call_gemini(
 				mock_text,
 			)
 			return mock_text
-<<<<<<< HEAD
 		raise
 
 
 def _log_api_call(run_id: str, stage: str, model: str, request_payload: str, response_payload: str) -> None:
 	"""Write an audit entry to Impact Analyzer Log."""
-=======
-		raise frappe.ValidationError(_("AI API request failed: {0}").format(str(exc)))
-
-
-# Backward-compatible alias
-call_claude = call_gemini
-
-
-def _log_api_call(run_id, stage, model, prompt_sent, response_received):
-	"""Save audit log record in Impact Analyzer Log."""
->>>>>>> 3871c81 (latest ui process and ai update)
 	try:
 		log = frappe.get_doc(
 			{
@@ -236,7 +233,6 @@ def _generate_mock_response(prompt: str, stage: str) -> str:
 	elif stage == "Drafting":
 		return json.dumps([
 			{
-<<<<<<< HEAD
 				"file": "frappe/core/doctype/user/user.py",
 				"line": 10,
 				"source": "File",
@@ -248,36 +244,6 @@ def _generate_mock_response(prompt: str, stage: str) -> str:
 			}
 		])
 	elif stage == "Formatting":
-=======
-				"intent": "impact_analysis",
-				"app": "frappe",
-				"doctype": "User",
-				"fields": ["first_name", "last_name", "email"],
-				"functions": ["validate_email"],
-				"files": ["frappe/core/doctype/user/user.py"],
-				"confidence": 0.9,
-				"clarification_needed": "",
-			},
-			indent=2,
-		)
-	elif "Drafting" in stage or "Drafter" in stage:
-		return json.dumps(
-			[
-				{
-					"file": "frappe/core/doctype/user/user.py",
-					"line": 42,
-					"source": "File",
-					"impact": "High",
-					"reason": "Function validate_email is called during document validation.",
-					"suggested_action": "Ensure parameter compatibility after renaming.",
-					"snippet": "def validate_email(self):",
-					"usage_type": "Python Function Def",
-				}
-			],
-			indent=2,
-		)
-	elif "Formatting" in stage or "Formatter" in stage:
->>>>>>> 3871c81 (latest ui process and ai update)
 		return (
 			"<p><strong>Executive Summary (Mock):</strong> Analysis completed successfully. "
 			"Review the verified changes below before applying modifications.</p>"
