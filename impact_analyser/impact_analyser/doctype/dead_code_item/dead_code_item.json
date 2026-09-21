@@ -1,0 +1,86 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-09-17 12:45:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "symbol_or_block",
+  "symbol_type",
+  "file_path",
+  "location",
+  "risk_level",
+  "reason",
+  "call_path_justification",
+  "safe_to_eliminate"
+ ],
+ "fields": [
+  {
+   "fieldname": "symbol_or_block",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Symbol / Block",
+   "reqd": 1
+  },
+  {
+   "fieldname": "symbol_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Type",
+   "options": "Function\nClass\nInterface\nConstant\nVariable\nImport\nParameter\nPrivate Member\nControl Flow Block\nModule Export\nJS Function"
+  },
+  {
+   "fieldname": "file_path",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "File Path"
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Location (File:Line)"
+  },
+  {
+   "default": "Low",
+   "fieldname": "risk_level",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Risk Level",
+   "options": "Low\nMedium\nHigh"
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Reason / Evidence"
+  },
+  {
+   "fieldname": "call_path_justification",
+   "fieldtype": "Small Text",
+   "label": "Call Path Justification"
+  },
+  {
+   "default": "1",
+   "fieldname": "safe_to_eliminate",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Safe to Eliminate"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-17 14:36:45.703747",
+ "modified_by": "Administrator",
+ "module": "Impact Analyser",
+ "name": "Dead Code Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
