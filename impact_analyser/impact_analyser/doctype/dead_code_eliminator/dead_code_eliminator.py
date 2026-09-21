@@ -42,42 +42,6 @@ class DeadCodeEliminator(Document):
 			self.title = f"Scan: {app} ({now()})"
 
 
-	@frappe.whitelist(allow_guest=False)
-	def create_and_run_scan(
-		self,
-		target_app,
-		app_path=None,
-		scan_custom_controller_methods=1,
-		scan_standalone_helpers=1,
-	):
-		"""
-		Whitelisted method callable from the web UI to create a new Dead Code
-		Eliminator document (with the user-supplied options) and immediately
-		run the full analysis.  Returns the scan name and summary statistics
-		so the browser can redirect straight to the results view.
-		"""
-		if frappe.session.user == "Guest":
-			frappe.throw(frappe._("You must be logged in to run a scan."), frappe.PermissionError)
-
-		doc = frappe.new_doc("Dead Code Eliminator")
-		doc.target_app = (target_app or "").strip()
-		if not doc.target_app:
-			frappe.throw(frappe._("Target Frappe App is required."))
-		doc.app_path = (app_path or "").strip() or None
-		doc.scan_custom_controller_methods = int(scan_custom_controller_methods)
-		doc.scan_standalone_helpers = int(scan_standalone_helpers)
-		doc.status = "Draft"
-
-		# insert first so the doc has a name before running analysis
-		doc.insert(ignore_permissions=True)
-		frappe.db.commit()
-
-		result = doc.run_analysis()
-
-		return {
-			"scan_name": doc.name,
-			"result": result,
-		}
 	@frappe.whitelist()
 	def run_analysis(self):
 		app_name = (self.get("target_app") or "impact_analyser").strip()

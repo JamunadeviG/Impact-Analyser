@@ -10,7 +10,7 @@ FRAMEWORK_APPS = {
 	"builder", "print_designer", "wiki", "crm", "raven", "helpdesk",
 	"insights", "lending", "health", "agriculture", "education",
 	"manufacturing", "non_profit", "hospitality", "erpnext_com",
-	"frappe_io", "press", "posawesome", "erpnext_france",
+	"frappe_io", "press", "posawesome", "erpnext_france","impact_analyser"
 }
 
 
@@ -42,6 +42,7 @@ def get_context(context):
 		installed = list(frappe.get_installed_apps())
 		available_apps = [app for app in installed if app not in FRAMEWORK_APPS]
 	except Exception:
+
 		pass
 
 	context.available_apps = sorted(available_apps)
