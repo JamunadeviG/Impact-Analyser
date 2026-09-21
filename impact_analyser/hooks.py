@@ -20,3 +20,14 @@ add_to_apps_screen = [
 	}
 ]
 
+# brand_html = '<div><img src="/assets/public/images/dead-code-eliminator-logo.png">Dead Code Eliminator</div>'
+
+brand_html = '''
+<div style="display:flex; align-items:center; gap:12px;">
+    <img src="/assets/impact_analyser/images/dead-code-eliminator-logo.png"
+         style="height:60px; width:60px; object-fit:contain;">
+    <span style="font-size:20px; font-weight:600;">
+        Dead Code Eliminator
+    </span>
+</div>
+'''
