@@ -10,7 +10,7 @@ FRAMEWORK_APPS = {
 	"builder", "print_designer", "wiki", "crm", "raven", "helpdesk",
 	"insights", "lending", "health", "agriculture", "education",
 	"manufacturing", "non_profit", "hospitality", "erpnext_com",
-	"frappe_io", "press", "posawesome", "erpnext_france",
+	"frappe_io", "press", "posawesome", "erpnext_france","impact_analyser"
 }
 
 
