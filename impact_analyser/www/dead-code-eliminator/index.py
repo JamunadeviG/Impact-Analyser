@@ -42,6 +42,7 @@ def get_context(context):
 		installed = list(frappe.get_installed_apps())
 		available_apps = [app for app in installed if app not in FRAMEWORK_APPS]
 	except Exception:
+
 		pass
 
 	context.available_apps = sorted(available_apps)
