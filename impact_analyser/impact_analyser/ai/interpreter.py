@@ -3,8 +3,9 @@
 
 import json
 import re
+# pyrefly: ignore [missing-import]
 import frappe
-from frappe import _
+# pyrefly: ignore [missing-import]
 from impact_analyser.ai.client import call_gemini, get_settings
 
 
