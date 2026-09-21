@@ -132,15 +132,9 @@
 					<option value="{{ app }}">{{ app }}</option>
 					{% endfor %}
 				</select>
-				<div class="dce-form-hint">Choose the Frappe app to scan, or type a custom name below.</div>
+				<div class="dce-form-hint">Choose the developer app installed on the current site.</div>
 			</div>
 
-			<div class="dce-form-row">
-				<label class="dce-form-label" for="dce-custom-app">Custom App Name (if not listed above)</label>
-				<input class="dce-form-input" type="text" id="dce-custom-app" name="custom_app"
-					placeholder="e.g. airplane_mode" autocomplete="off" />
-				<div class="dce-form-hint">Overrides the dropdown selection when filled in.</div>
-			</div>
 
 			<div class="dce-form-row">
 				<label class="dce-form-label" for="dce-app-path">App Directory Path <span style="font-weight:400;color:#57606a;">(Optional Override)</span></label>
@@ -149,16 +143,7 @@
 				<div class="dce-form-hint">Absolute path to the app root — only needed if auto-detection fails.</div>
 			</div>
 
-			<div class="dce-form-section">Frappe Framework Smart Filters &amp; Guardrails</div>
 
-			<div class="dce-form-check">
-				<input type="checkbox" id="dce-chk-controller" name="scan_custom_controller_methods" checked />
-				<label for="dce-chk-controller">Detect Uncalled Custom Methods in DocType Controllers (e.g. summa functions)</label>
-			</div>
-			<div class="dce-form-check">
-				<input type="checkbox" id="dce-chk-helpers" name="scan_standalone_helpers" checked />
-				<label for="dce-chk-helpers">Detect Unused Standalone Helper Functions &amp; Constants</label>
-			</div>
 
 			<div class="dce-scan-status" id="dce-scan-status"></div>
 
@@ -254,15 +239,6 @@
 				</div>
 			</div>
 
-			<div style="margin-top:18px; border-top:1px solid #eaeef2; padding-top:14px;">
-				<div class="dce-field-label" style="margin-bottom:8px;">Frappe Framework Smart Filters &amp; Guardrails</div>
-				<div class="dce-check-row {{ 'dce-check-on' if doc.scan_custom_controller_methods else 'dce-check-off' }}">
-					<span class="dot"></span> Detect Uncalled Custom Methods in DocType Controllers
-				</div>
-				<div class="dce-check-row {{ 'dce-check-on' if doc.scan_standalone_helpers else 'dce-check-off' }}">
-					<span class="dot"></span> Detect Unused Standalone Helper Functions &amp; Constants
-				</div>
-			</div>
 		</div>
 
 		<div class="dce-section-title">Scan Metrics &amp; Results</div>
@@ -348,31 +324,28 @@ document.getElementById('dce-scan-form').addEventListener('submit', function(e) 
 	e.preventDefault();
 
 	var dropdown = document.getElementById('dce-target-app');
-	var customInput = document.getElementById('dce-custom-app');
-	var targetApp = (customInput.value.trim() || dropdown.value || '').trim();
+	var targetApp = (dropdown.value || '').trim();
 
 	if (!targetApp) {
-		showStatus('error', 'Please select or enter a Target Frappe App.');
+		showStatus('error', 'Please select a developer app to scan.');
 		return;
 	}
 
 	var appPath = document.getElementById('dce-app-path').value.trim();
-	var scanController = document.getElementById('dce-chk-controller').checked ? 1 : 0;
-	var scanHelpers = document.getElementById('dce-chk-helpers').checked ? 1 : 0;
 
 	var btn = document.getElementById('dce-scan-btn');
 	btn.disabled = true;
 	btn.textContent = 'Scanning…';
 
-	showStatus('info', '<span class="dce-spinner"></span>&nbsp; Traversing all DocTypes, .py, and .js files in <strong>' + esc(targetApp) + '</strong>. Analyzing AST &amp; enforcing Frappe Framework guardrails…');
+	showStatus('info', '<span class="dce-spinner"></span>&nbsp; Traversing all DocTypes, .py, and .js files in <strong>' + esc(targetApp) + '</strong>. Analyzing AST…');
 
 	frappe.call({
 		method: 'impact_analyser.impact_analyser.doctype.dead_code_eliminator.dead_code_eliminator.create_and_run_scan_api',
 		args: {
 			target_app: targetApp,
 			app_path: appPath || null,
-			scan_custom_controller_methods: scanController,
-			scan_standalone_helpers: scanHelpers
+			scan_custom_controller_methods: 1,
+			scan_standalone_helpers: 1
 		},
 		callback: function(r) {
 			if (r.exc) {
