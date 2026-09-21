@@ -447,15 +447,32 @@ def _scan_json_file(content: str, lines: list, rel_path: str, targets: dict, hit
 				)
 
 			# Field schema
-			for idx, fld in enumerate(data.get("fields", []), start=1):
+			last_line_idx = 0
+			for fld in data.get("fields", []):
 				fname = fld.get("fieldname", "")
 				foptions = fld.get("options", "")
 				fdepends = fld.get("depends_on", "") or ""
 
+				# Find real line number for this field in JSON
+				field_line = 1
+				if fname:
+					target_pattern = f'"fieldname": "{fname}"'
+					for l_idx in range(last_line_idx, len(lines)):
+						if target_pattern in lines[l_idx]:
+							field_line = l_idx + 1
+							last_line_idx = l_idx + 1
+							break
+					else:
+						# Fallback if not found searching forward: search from start of file
+						for l_idx in range(len(lines)):
+							if target_pattern in lines[l_idx]:
+								field_line = l_idx + 1
+								break
+
 				# Link field pointing to target doctype (High severity schema coupling)
 				if targets["doctype"] and foptions == targets["doctype"]:
 					_record_hit(
-						hits_dict, rel_path, idx,
+						hits_dict, rel_path, field_line,
 						f"Link Field '{fname}' points to target DocType '{targets['doctype']}'",
 						"DocType Link Schema", "High",
 					)
@@ -463,7 +480,7 @@ def _scan_json_file(content: str, lines: list, rel_path: str, targets: dict, hit
 				# Target field definition
 				if fname in targets["fields"]:
 					_record_hit(
-						hits_dict, rel_path, idx,
+						hits_dict, rel_path, field_line,
 						f"Field '{fname}' ({fld.get('fieldtype')}) in {data.get('name')}",
 						"DocType Field Schema", "Medium",
 					)
@@ -471,7 +488,7 @@ def _scan_json_file(content: str, lines: list, rel_path: str, targets: dict, hit
 				# depends_on expression
 				if targets["fields"] and any(f in fdepends for f in targets["fields"]):
 					_record_hit(
-						hits_dict, rel_path, idx,
+						hits_dict, rel_path, field_line,
 						f"Field '{fname}' depends_on expression: {fdepends}",
 						"DocType Depends On Schema", "Medium",
 					)
