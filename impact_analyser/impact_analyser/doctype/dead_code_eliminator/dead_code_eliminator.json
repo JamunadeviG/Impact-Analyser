@@ -23,12 +23,7 @@
   "medium_risk_count",
   "high_risk_count",
   "section_inventory",
-  "inventory",
-  "section_justification",
-  "call_path_justifications",
-  "section_diff",
-  "diff_html",
-  "unified_diff"
+  "inventory"
  ],
  "fields": [
   {
@@ -139,34 +134,6 @@
    "fieldtype": "Table",
    "label": "Dead Code Items",
    "options": "Dead Code Item"
-  },
-  {
-   "fieldname": "section_justification",
-   "fieldtype": "Section Break",
-   "label": "Section 5.B: Dependency & Call Path Justification"
-  },
-  {
-   "fieldname": "call_path_justifications",
-   "fieldtype": "Markdown Editor",
-   "label": "Unreachability Proofs Across App Graph",
-   "read_only": 1
-  },
-  {
-   "fieldname": "section_diff",
-   "fieldtype": "Section Break",
-   "label": "Section 5.C: Refactored Code & Unified Diff"
-  },
-  {
-   "fieldname": "diff_html",
-   "fieldtype": "HTML",
-   "label": "Unified Diff Viewer"
-  },
-  {
-   "fieldname": "unified_diff",
-   "fieldtype": "Code",
-   "label": "Raw Unified Diff Text",
-   "options": "Diff",
-   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,

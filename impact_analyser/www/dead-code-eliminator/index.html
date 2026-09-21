@@ -54,9 +54,6 @@
 	.dce-symbol { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
 	.dce-path { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: #57606a; }
 
-	.dce-markdown { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 8px; padding: 16px 18px; font-size: 14px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
-	.dce-diff-wrap { border: 1px solid #d0d7de; border-radius: 8px; overflow: hidden; }
-	.dce-raw-diff { background: #0d1117; color: #c9d1d9; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; padding: 14px 16px; border-radius: 8px; overflow-x: auto; white-space: pre; max-height: 400px; overflow-y: auto; }
 
 	/* ========== MODAL ========== */
 	.dce-modal-overlay {
@@ -314,26 +311,6 @@
 			<div class="dce-empty">No dead code candidates found in this scan.</div>
 		{% endif %}
 
-		<div class="dce-section-title">Section 5.B: Dependency &amp; Call Path Justification</div>
-		<div class="dce-section-sub">Unreachability Proofs Across App Graph</div>
-		{% if doc.call_path_justifications %}
-			<div class="dce-markdown">{{ doc.call_path_justifications }}</div>
-		{% else %}
-			<div class="dce-empty">No report generated for this scan.</div>
-		{% endif %}
-
-		<div class="dce-section-title">Section 5.C: Refactored Code &amp; Unified Diff</div>
-		<div class="dce-section-sub">Unified Diff Viewer</div>
-		{% if doc.diff_html %}
-			<div class="dce-diff-wrap">{{ doc.diff_html | safe }}</div>
-		{% else %}
-			<div class="dce-empty">No safe eliminations to display.</div>
-		{% endif %}
-
-		{% if doc.unified_diff %}
-			<div class="dce-section-sub" style="margin-top:20px;">Raw Unified Diff Text</div>
-			<div class="dce-raw-diff">{{ doc.unified_diff }}</div>
-		{% endif %}
 
 	{% endif %}
 

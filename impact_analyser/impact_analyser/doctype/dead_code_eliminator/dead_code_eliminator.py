@@ -1,6 +1,4 @@
 import ast
-import difflib
-import html
 import os
 import re
 
@@ -89,7 +87,6 @@ class DeadCodeEliminator(Document):
 
 		self.status = "Scanning Entire App"
 		self.set("inventory", [])
-		self.call_path_justifications = ""
 
 		code_files = self._collect_app_files(app_dir)
 		total_files = len(code_files)
@@ -172,18 +169,6 @@ class DeadCodeEliminator(Document):
 		self.medium_risk_count = med_cnt
 		self.high_risk_count = high_cnt
 
-		unified_diff_text, diff_html = self._generate_diffs(files_to_patch, app_dir)
-		self.unified_diff = unified_diff_text
-		self.diff_html = diff_html
-
-		self.call_path_justifications = self._generate_report(
-			app_name=app_name,
-			app_dir=app_dir,
-			total_files=total_files,
-			total_lines=total_lines,
-			safe_items=safe_items,
-			review_items=review_items,
-		)
 
 		self.status = "Completed"
 		if not self.get("title") or self.title == "App Scan":
@@ -205,48 +190,6 @@ class DeadCodeEliminator(Document):
 			"safe_to_remove": low_cnt,
 			"needs_review": med_cnt + high_cnt,
 		}
-
-	def _generate_report(self, app_name, app_dir, total_files, total_lines, safe_items, review_items):
-		"""
-		Plain, deterministic scan report - grouped by file rather than one
-		long flat table, so results for the same file sit together. No AI
-		branding: detection is 100% rule-based (AST + naming-convention
-		checks), so labelling this as an "AI" report was never accurate.
-		"""
-		total = len(safe_items) + len(review_items)
-		report = []
-		report.append(f"# Dead Code Scan — {app_name}\n\n")
-		report.append(f"{total_files} files scanned · {total_lines} lines · {total} item(s) found\n\n")
-
-		if total == 0:
-			report.append("No dead code candidates found. ✅\n")
-			return "".join(report)
-
-		report.append(f"**{len(safe_items)}** safe to remove · **{len(review_items)}** need review\n\n")
-
-		if safe_items:
-			report.append(f"## ✅ Safe to Remove ({len(safe_items)})\n\n")
-			report.extend(self._render_items_grouped_by_file(safe_items))
-
-		if review_items:
-			report.append(f"## ⚠️ Needs Review ({len(review_items)})\n\n")
-			report.extend(self._render_items_grouped_by_file(review_items))
-
-		return "".join(report)
-
-	def _render_items_grouped_by_file(self, items):
-		lines = []
-		by_file = {}
-		for item in items:
-			by_file.setdefault(item["file_path"], []).append(item)
-
-		for file_path in sorted(by_file):
-			lines.append(f"**`{file_path}`**\n\n")
-			for item in sorted(by_file[file_path], key=lambda i: i["line"]):
-				lines.append(f"- Line {item['line']} — `{item['symbol']}` ({item['type']}, {item['risk_level']} risk)\n")
-			lines.append("\n")
-
-		return lines
 
 	def _collect_app_files(self, app_dir):
 		# Only .py and .json are scanned. JavaScript and HTML scanning
@@ -632,63 +575,6 @@ class DeadCodeEliminator(Document):
 			if isinstance(dec, ast.Attribute) and dec.attr in ("setter", "deleter", "getter", "cached_property"):
 				return True
 		return False
-
-	def _generate_diffs(self, files_to_patch, app_dir):
-		unified_diffs = []
-		html_diff_blocks = []
-
-		for fpath, items in files_to_patch.items():
-			try:
-				with open(fpath, "r", encoding="utf-8") as f:
-					orig_lines = f.readlines()
-			except Exception:
-				continue
-
-			lines_to_remove = set()
-			for item in items:
-				node = item.get("node")
-				if node:
-					end_lineno = getattr(node, "end_lineno", node.lineno)
-					for l in range(node.lineno, end_lineno + 1):
-						lines_to_remove.add(l)
-
-			new_lines = [line for idx, line in enumerate(orig_lines, start=1) if idx not in lines_to_remove]
-
-			rel = os.path.relpath(fpath, app_dir).replace("\\", "/")
-			diff = list(difflib.unified_diff(
-				orig_lines, new_lines,
-				fromfile=f"a/{rel}",
-				tofile=f"b/{rel}"
-			))
-
-			if diff:
-				diff_str = "".join(diff)
-				unified_diffs.append(diff_str)
-
-				html_rows = []
-				for line in diff:
-					escaped = html.escape(line.rstrip())
-					if line.startswith("+") and not line.startswith("+++"):
-						html_rows.append(f"<div style='background-color:#e6ffec;color:#1e4620;font-family:monospace;padding:1px 4px;'>{escaped}</div>")
-					elif line.startswith("-") and not line.startswith("---"):
-						html_rows.append(f"<div style='background-color:#ffebe9;color:#b31d28;font-family:monospace;padding:1px 4px;'>{escaped}</div>")
-					elif line.startswith("@@"):
-						html_rows.append(f"<div style='background-color:#f1f8ff;color:#0366d6;font-family:monospace;padding:1px 4px;font-weight:bold;'>{escaped}</div>")
-					else:
-						html_rows.append(f"<div style='color:#555;font-family:monospace;padding:1px 4px;'>{escaped}</div>")
-
-				block = (
-					f"<div style='margin-bottom:16px;border:1px solid #d0d7de;border-radius:6px;overflow:hidden;'>"
-					f"<div style='background:#f6f8fa;padding:8px 12px;font-weight:bold;font-size:13px;border-bottom:1px solid #d0d7de;'>📄 {rel}</div>"
-					f"<div style='padding:8px;font-size:12px;background:#fff;max-height:300px;overflow-y:auto;'>"
-					+ "".join(html_rows) +
-					f"</div></div>"
-				)
-				html_diff_blocks.append(block)
-
-		unified_text = "\n".join(unified_diffs)
-		diff_html = "".join(html_diff_blocks) if html_diff_blocks else "<p style='color:#666;'>No safe eliminations to display.</p>"
-		return unified_text, diff_html
 
 	def _get_bench_path(self):
 		try:
