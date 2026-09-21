@@ -2,7 +2,7 @@
 
 {% block page_content %}
 <style>
-	.dce-wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; color: #24292f; }
+	.dce-wrap { max-width: 2500px; margin: 0 auto; padding: 20px 16px 60px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; color: #24292f; }
 	.dce-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
 	.dce-header h1 { font-size: 22px; font-weight: 650; margin: 0; }
 	.dce-btn { display: inline-block; padding: 7px 14px; border-radius: 6px; font-size: 13px; font-weight: 550; text-decoration: none; border: 1px solid #d0d7de; background: #fff; color: #24292f; cursor: pointer; line-height: 1.4; }
@@ -12,7 +12,7 @@
 	.dce-btn:disabled, .dce-btn[disabled] { opacity: .55; cursor: not-allowed; pointer-events: none; }
 
 	.dce-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #d0d7de; border-radius: 8px; overflow: hidden; }
-	.dce-table th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: #57606a; background: #f6f8fa; padding: 10px 14px; border-bottom: 1px solid #d0d7de; }
+	.dce-table th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: #000408; background: #f6f8fa; padding: 10px 14px; border-bottom: 1px solid #d0d7de; }
 	.dce-table td { padding: 12px 14px; border-bottom: 1px solid #eaeef2; font-size: 14px; vertical-align: middle; }
 	.dce-table tr:last-child td { border-bottom: none; }
 	.dce-table tr.dce-row:hover { background: #f6f8fa; cursor: pointer; }
@@ -251,7 +251,7 @@
 			<div class="dce-metric"><div class="num" style="color:#cf222e;">{{ doc.high_risk_count or 0 }}</div><div class="label">High Risk (Review Needed)</div></div>
 		</div>
 
-		<div class="dce-section-title">Section 5.A: Dead Code Inventory Table</div>
+		<div class="dce-section-title">Dead Code Inventory Table</div>
 		{% if inventory %}
 			<table class="dce-table">
 				<thead>
@@ -262,7 +262,7 @@
 						<th>File Path</th>
 						<th>Location</th>
 						<th>Risk Level</th>
-						<th>Reason / Evidence</th>
+						<th>Reason</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -271,7 +271,7 @@
 						<td>{{ loop.index }}</td>
 						<td class="dce-symbol">{{ item.symbol_or_block }}</td>
 						<td>{{ item.symbol_type }}</td>
-						<td class="dce-path">{{ item.file_path }}</td>
+						<td class="dce-path" style="font-weight: 600; color: #1f2328;"><strong>{{ item.file_path }}</strong></td>
 						<td class="dce-path">{{ item.location }}</td>
 						<td>
 							{% if item.risk_level == "Low" %}<span class="dce-badge dce-badge-low">Low</span>

@@ -6,6 +6,8 @@ import re
 import frappe
 from frappe.model.document import Document
 from frappe.utils import now
+import json
+from impact_analyser.ai.client import call_gemini, get_api_key
 
 
 # Standard Frappe framework lifecycle and controller hooks
@@ -130,6 +132,8 @@ class DeadCodeEliminator(Document):
 		# NOTE: JavaScript scanning intentionally removed — this app only
 		# scans .py and .json files now.
 
+		candidates = self._classify_candidate_risks(candidates, file_contents)
+
 		low_cnt = 0
 		med_cnt = 0
 		high_cnt = 0
@@ -190,6 +194,160 @@ class DeadCodeEliminator(Document):
 			"safe_to_remove": low_cnt,
 			"needs_review": med_cnt + high_cnt,
 		}
+
+
+	def _extract_snippet(self, node, content, max_lines=30):
+		if not node or not content:
+			return ""
+		lines = content.splitlines()
+		start = max(0, getattr(node, "lineno", 1) - 1)
+		end = min(len(lines), getattr(node, "end_lineno", start + max_lines))
+		return "\n".join(lines[start:min(end, start + max_lines)])
+
+	def _heuristic_risk_assessment(self, item, snippet):
+		symbol = item.get("symbol", "")
+		file_path = item.get("file_path", "")
+		symbol_lower = symbol.lower()
+		path_lower = file_path.lower()
+		snippet_lower = snippet.lower() if snippet else ""
+
+		high_keywords = [
+			"payment", "invoice", "billing", "tax", "salary", "ledger", "pricing",
+			"charge", "payout", "transaction", "checkout", "gateway",
+			"auth", "token", "permission", "password", "secret", "login",
+			"webhook", "realtime", "socket", "subscribe", "publish",
+			"sendmail", "send_email", "sms",
+			"custom_validation", "before_update_after_submit", "after_save", "before_save",
+			"on_submit", "before_submit", "on_cancel", "before_cancel"
+		]
+
+		for kw in high_keywords:
+			if kw in symbol_lower or kw in path_lower:
+				return {
+					"risk_level": "High",
+					"reason": f"High risk: symbol or path matches critical keyword '{kw}'. Manual review recommended.",
+					"safe_to_eliminate": 0,
+				}
+
+		critical_code_markers = [
+			"frappe.publish_realtime",
+			"frappe.sendmail",
+			"frappe.enqueue",
+			"frappe.db.commit",
+			"frappe.db.sql",
+		]
+		for marker in critical_code_markers:
+			if marker in snippet_lower:
+				return {
+					"risk_level": "High",
+					"reason": f"High risk: calls '{marker}' which performs critical side-effects.",
+					"safe_to_eliminate": 0,
+				}
+
+		pure_name = symbol.split(".")[-1]
+		if pure_name.startswith("_"):
+			return {
+				"risk_level": "Low",
+				"reason": "Low risk: private helper function with no external references.",
+				"safe_to_eliminate": 1,
+			}
+
+		if item.get("type") == "Function" and "frappe.db" not in snippet_lower and "requests." not in snippet_lower and "frappe." not in snippet_lower:
+			return {
+				"risk_level": "Low",
+				"reason": "Low risk: static helper utility with zero database or framework side-effects.",
+				"safe_to_eliminate": 1,
+			}
+
+		return {
+			"risk_level": "Medium",
+			"reason": f"Medium risk: '{symbol}' has 0 references in app graph, but could be called externally or via dynamic reflection.",
+			"safe_to_eliminate": 0,
+		}
+
+	def _classify_candidate_risks(self, candidates, file_contents):
+		if not candidates:
+			return candidates
+
+		candidate_payloads = []
+		for idx, item in enumerate(candidates):
+			fpath = item.get("abs_path")
+			content = file_contents.get(fpath, "")
+			node = item.get("node")
+			snippet = self._extract_snippet(node, content)
+			item["snippet"] = snippet
+
+			# Set heuristic baseline
+			h_res = self._heuristic_risk_assessment(item, snippet)
+			item["risk_level"] = h_res["risk_level"]
+			item["reason"] = h_res["reason"]
+			item["safe_to_eliminate"] = h_res["safe_to_eliminate"]
+
+			candidate_payloads.append({
+				"id": idx,
+				"symbol": item["symbol"],
+				"type": item["type"],
+				"file": item["file_path"],
+				"line": item["line"],
+				"code": snippet[:400]
+			})
+
+		# Check for AI API key
+		api_key = ""
+		try:
+			api_key = get_api_key()
+		except Exception:
+			api_key = ""
+
+		if not api_key:
+			return candidates
+
+		sys_prompt = (
+			"You are an expert Frappe Framework code quality and security auditor.\n"
+			"Analyze the following list of unreferenced code symbols (functions, methods, classes) found in a Frappe application.\n"
+			"Categorize each item's deletion risk:\n"
+			"- \"High\": Code involving financial transactions/payments/taxes, realtime events, socket pubsub, webhooks, emails/notifications, auth/permissions, mixin hooks (e.g. custom_validation, before_update_after_submit), or background jobs. Deleting this could cause silent critical breakage.\n"
+			"- \"Medium\": Standard DocType controller methods or business logic without critical markers, but which might be invoked dynamically or via external integrations/client scripts.\n"
+			"- \"Low\": Pure local helpers, private functions (_prefixed), orphaned formatting/math utilities with zero database mutations, no external side-effects, and no dynamic invocation. Safe to eliminate.\n\n"
+			"Output ONLY a valid JSON array of objects with keys:\n"
+			"\"id\" (int matching candidate id), \"risk_level\" (\"Low\"|\"Medium\"|\"High\"), \"reason\" (short 1-sentence explanation), and \"safe_to_eliminate\" (1 if Low, 0 if Medium/High).\n"
+			"Do not wrap in markdown or backticks. Return valid JSON only."
+		)
+
+		batch_size = 25
+		for i in range(0, len(candidate_payloads), batch_size):
+			batch = candidate_payloads[i:i + batch_size]
+			user_prompt = f"Analyze these dead code candidates:\n{json.dumps(batch, indent=2)}"
+			try:
+				response_text = call_gemini(
+					prompt=user_prompt,
+					system_prompt=sys_prompt,
+					stage="Dead Code AI Risk Classification"
+				)
+				clean_text = (response_text or "").strip()
+				if clean_text.startswith("```"):
+					parts = clean_text.split("```")
+					if len(parts) >= 2:
+						clean_text = parts[1]
+						if clean_text.startswith("json"):
+							clean_text = clean_text[4:]
+				clean_text = clean_text.strip()
+
+				parsed = json.loads(clean_text)
+				if isinstance(parsed, list):
+					for p in parsed:
+						c_id = p.get("id")
+						if c_id is not None and 0 <= c_id < len(candidates):
+							cand = candidates[c_id]
+							risk = p.get("risk_level", cand["risk_level"])
+							if risk in ["Low", "Medium", "High"]:
+								cand["risk_level"] = risk
+								cand["reason"] = p.get("reason", cand["reason"])
+								cand["safe_to_eliminate"] = 1 if risk == "Low" else 0
+			except Exception as e:
+				frappe.log_error(f"AI Risk Classification failed, using heuristics: {e}", "Dead Code Eliminator")
+
+		return candidates
 
 	def _collect_app_files(self, app_dir):
 		# Only .py and .json are scanned. JavaScript and HTML scanning
