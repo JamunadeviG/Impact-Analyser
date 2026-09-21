@@ -19,3 +19,7 @@ add_to_apps_screen = [
 		"route": "/app/impact-analyzer",
 	}
 ]
+
+website_route_rules = [
+	{"from_route": "/impact-analyzer", "to_route": "impact_analyzer"},
+]

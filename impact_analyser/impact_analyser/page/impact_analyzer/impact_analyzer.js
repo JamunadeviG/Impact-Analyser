@@ -63,8 +63,8 @@ class ImpactAnalyzerPage {
 		this.$main.html(`
 			<!-- HERO -->
 			<div class="ia-hero">
+				<div class="ia-hero-icon">🔍</div>
 				<div class="ia-hero-content">
-					<div class="ia-hero-icon">🔍</div>
 					<h1>Impact Analyzer</h1>
 					<p>Discover what breaks before you make the change. Powered by AI + static analysis.</p>
 				</div>
@@ -86,11 +86,11 @@ class ImpactAnalyzerPage {
 						<div id="ia-doctype-suggestions" style="position:relative;"></div>
 					</div>
 					<div class="ia-field">
-						<label>Target Files <span style="opacity:.5;font-weight:400;">(comma-separated, optional)</span></label>
+						<label>Target Files <span class="ia-field-hint">(comma-separated, optional)</span></label>
 						<input id="ia-files-input" type="text" placeholder="e.g. api.py, hooks.py" />
 					</div>
 					<div class="ia-field">
-						<label>Target Functions / Symbols <span style="opacity:.5;font-weight:400;">(optional)</span></label>
+						<label>Target Functions / Symbols <span class="ia-field-hint">(optional)</span></label>
 						<input id="ia-functions-input" type="text" placeholder="e.g. validate, get_tickets" />
 					</div>
 				</div>
@@ -98,14 +98,14 @@ class ImpactAnalyzerPage {
 				<div class="ia-or">or describe your change in plain English</div>
 
 				<div class="ia-field ia-field-full">
-					<label>Prompt <span style="opacity:.5;font-weight:400;">(AI Interpretation path)</span></label>
+					<label>Prompt <span class="ia-field-hint">(AI Interpretation path)</span></label>
 					<textarea id="ia-prompt-input" placeholder='e.g. "What breaks if I rename flight to flight_code in Airplane Ticket?" or "I want to know available fields"'></textarea>
 				</div>
 
 				<hr class="ia-divider" />
 
 				<div class="ia-submit-wrap">
-					<span id="ia-path-hint" style="font-size:12px;color:rgba(255,255,255,0.35);"></span>
+					<span id="ia-path-hint" class="ia-path-hint"></span>
 					<button class="ia-btn ia-btn-primary" id="ia-analyze-btn">
 						<span>⚡</span> Analyze Impact
 					</button>
@@ -142,7 +142,7 @@ class ImpactAnalyzerPage {
 				</div>
 				<div class="ia-status-msg" id="ia-status-msg">Queued — starting analysis…</div>
 				<div style="text-align:center;margin-top:12px;">
-					<a id="ia-run-link" href="#" style="font-size:12px;color:rgba(255,255,255,0.45);text-decoration:none;">
+					<a id="ia-run-link" href="#" class="ia-run-link">
 						View Run Document →
 					</a>
 				</div>
@@ -215,13 +215,10 @@ class ImpactAnalyzerPage {
 					callback(r) {
 						if (!r.message) return;
 						const items = r.message.map(d =>
-							`<div class="ia-dt-opt" style="padding:8px 14px;cursor:pointer;font-size:13px;
-							color:#94a3b8;background:rgba(15,23,42,0.95);border-bottom:1px solid rgba(255,255,255,0.06);"
-							data-val="${d.name}">${d.name}</div>`
+							`<div class="ia-dt-opt" data-val="${d.name}">${d.name}</div>`
 						).join("");
 						$("#ia-doctype-suggestions").html(
-							`<div style="position:absolute;top:2px;left:0;right:0;z-index:100;
-							border:1px solid rgba(255,255,255,0.12);border-radius:8px;overflow:hidden;">${items}</div>`
+							`<div class="ia-dt-dropdown">${items}</div>`
 						);
 					},
 				});
@@ -434,7 +431,7 @@ class ImpactAnalyzerPage {
 		this._stop_polling();
 		this._set_progress(100, "Formatting", msg);
 		$(".ia-step").last().prev().addClass("failed").removeClass("active done");
-		$("#ia-status-msg").css("color", "#f87171").html("❌ " + msg);
+		$("#ia-status-msg").css("color", "#dc2626").html("❌ " + msg);
 		$("#ia-analyze-btn").prop("disabled", false);
 	}
 
@@ -480,10 +477,10 @@ class ImpactAnalyzerPage {
 			$("#ia-change-list").hide();
 		} else {
 			$("#ia-stat-row").show().html(`
-				<div class="ia-stat"><div class="ia-stat-num" style="color:#f87171;">${high}</div><div class="ia-stat-lbl">High Impact</div></div>
-				<div class="ia-stat"><div class="ia-stat-num" style="color:#fb923c;">${med}</div><div class="ia-stat-lbl">Medium Impact</div></div>
-				<div class="ia-stat"><div class="ia-stat-num" style="color:#60a5fa;">${low}</div><div class="ia-stat-lbl">Low Impact</div></div>
-				<div class="ia-stat"><div class="ia-stat-num">${changes.length}</div><div class="ia-stat-lbl">Total Changes</div></div>
+				<div class="ia-stat"><div class="ia-stat-num ia-stat-high">${high}</div><div class="ia-stat-lbl">High Impact</div></div>
+				<div class="ia-stat"><div class="ia-stat-num ia-stat-medium">${med}</div><div class="ia-stat-lbl">Medium Impact</div></div>
+				<div class="ia-stat"><div class="ia-stat-num ia-stat-low">${low}</div><div class="ia-stat-lbl">Low Impact</div></div>
+				<div class="ia-stat"><div class="ia-stat-num ia-stat-total">${changes.length}</div><div class="ia-stat-lbl">Total Changes</div></div>
 			`);
 			$("#ia-filter-bar").show();
 			$("#ia-change-list").show();
@@ -531,7 +528,7 @@ class ImpactAnalyzerPage {
 						<span class="ia-badge ia-badge-${impact_cls}">${impact_lbl}</span>
 						<span class="ia-badge ia-badge-${source_cls}">${source_lbl}</span>
 						<span class="ia-change-file">
-							<span style="opacity:.4;">${file_dir ? file_dir + "/" : ""}</span><span>${file_short}${line_txt}</span>
+							${file_dir ? `<span class="ia-dir-path">${file_dir}/</span>` : ""}<span class="ia-file-name">${file_short}${line_txt}</span>
 						</span>
 						${c.usage_type ? `<span class="ia-change-type">${c.usage_type}</span>` : ""}
 						<span class="ia-change-expand">›</span>

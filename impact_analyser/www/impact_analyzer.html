@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Impact Analyzer</title>
+    <!-- Include jQuery for easier DOM manipulation -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        {% include "impact_analyser/www/impact_analyzer.css" %}
+    </style>
+</head>
+<body>
+
+<div class="ia-top-bar">
+    <div class="ia-brand">Impact Analyzer</div>
+    <div class="ia-nav-links">
+        <a href="/app">Back to Desk</a>
+        <a href="/?cmd=web_logout">Logout</a>
+    </div>
+</div>
+
+<div class="ia-container">
+    <div id="ia-input-card" class="ia-card">
+        <div class="ia-hero">
+            <h2>Analyze Change Impact</h2>
+            <p>Describe your planned changes or specific functions to see what will break.</p>
+        </div>
+        
+        <div class="ia-form-section">
+            <div class="ia-form-grid">
+                <div class="ia-form-group">
+                    <label>Target App (Optional)</label>
+                    <select id="ia-app-select" class="ia-form-control">
+                        <option value="">Select App...</option>
+                    </select>
+                </div>
+                <div class="ia-form-group">
+                    <label>DocType (Optional)</label>
+                    <input type="text" id="ia-doctype-input" class="ia-form-control" placeholder="e.g. Sales Invoice">
+                </div>
+            </div>
+            
+            <div class="ia-form-group">
+                <label>Target Files (Optional)</label>
+                <input type="text" id="ia-files-input" class="ia-form-control" placeholder="e.g. apps/erpnext/erpnext/selling/sales_invoice.py">
+            </div>
+            
+            <div class="ia-form-group">
+                <label>Target Functions (Optional)</label>
+                <input type="text" id="ia-functions-input" class="ia-form-control" placeholder="e.g. get_item_details, calculate_taxes">
+            </div>
+            
+            <div class="ia-form-group">
+                <label>Change Intent / Prompt</label>
+                <textarea id="ia-prompt-input" class="ia-form-control" placeholder="What are you changing? e.g. 'I am modifying how taxes are calculated for recurring invoices...'"></textarea>
+            </div>
+            
+            <button id="ia-analyze-btn" class="ia-btn ia-btn-primary" style="width: 100%;">
+                <span>Analyze Impact</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="ia-progress-card" class="ia-card" style="display: none;">
+        <h3 style="margin-top: 0;">Analysis in Progress</h3>
+        
+        <div class="ia-stepper">
+            <div class="ia-step">
+                <div class="ia-step-circle">1</div>
+                <div class="ia-step-label">Interpreting</div>
+            </div>
+            <div class="ia-step">
+                <div class="ia-step-circle">2</div>
+                <div class="ia-step-label">Scanning</div>
+            </div>
+            <div class="ia-step">
+                <div class="ia-step-circle">3</div>
+                <div class="ia-step-label">Drafting</div>
+            </div>
+            <div class="ia-step">
+                <div class="ia-step-circle">4</div>
+                <div class="ia-step-label">Formatting</div>
+            </div>
+        </div>
+        
+        <div class="ia-progress-wrap">
+            <div id="ia-progress-bar" class="ia-progress-bar"></div>
+        </div>
+        <div id="ia-status-msg" class="ia-status-msg">Initializing...</div>
+    </div>
+
+    <div id="ia-results-card" class="ia-card" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 id="ia-result-title" style="margin: 0;">Impact Report</h2>
+            <button id="ia-new-scan-btn" class="ia-btn ia-btn-primary">New Scan</button>
+        </div>
+        
+        <div class="ia-summary-header">
+            <div id="ia-result-summary"></div>
+            <div id="ia-stat-row" class="ia-stat-row"></div>
+        </div>
+        
+        <div id="ia-filter-bar" class="ia-filter-bar">
+            <button class="ia-filter-btn active" data-filter="all">All Changes</button>
+            <button class="ia-filter-btn" data-filter="high">High Impact</button>
+            <button class="ia-filter-btn" data-filter="medium">Medium Impact</button>
+            <button class="ia-filter-btn" data-filter="low">Low Impact</button>
+            <button class="ia-filter-btn" data-filter="file">File Changes</button>
+            <button class="ia-filter-btn" data-filter="database">Database</button>
+        </div>
+        
+        <div id="ia-change-list" class="ia-change-list"></div>
+    </div>
+</div>
+
+<script>
+    const csrf_token = "{{ csrf_token }}";
+    
+    // Frappe API Helper
+    function frappe_call(method, args) {
+        return fetch('/api/method/' + method, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Frappe-CSRF-Token': csrf_token,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(args)
+        }).then(res => res.json());
+    }
+
+    let all_changes = [];
+    let poll_timer = null;
+    let poll_count = 0;
+
+    $(document).ready(function() {
+        // Load apps
+        frappe_call('impact_analyser.api.get_apps_list', {}).then(res => {
+            if (res.message) {
+                res.message.forEach(app => {
+                    $('#ia-app-select').append(`<option value="${app}">${app}</option>`);
+                });
+            }
+        });
+
+        $('#ia-analyze-btn').click(function() {
+            const prompt = $('#ia-prompt-input').val().trim();
+            const doctype = $('#ia-doctype-input').val().trim();
+            const files = $('#ia-files-input').val().trim();
+            const functions = $('#ia-functions-input').val().trim();
+            const app = $('#ia-app-select').val();
+
+            if (!prompt && !doctype && !files && !functions) {
+                alert("Please provide at least a prompt, doctype, file, or function to analyze.");
+                return;
+            }
+
+            $(this).prop('disabled', true);
+            $('#ia-input-card').hide();
+            $('#ia-progress-card').show();
+            _set_progress(10, "Interpreting", "Queued for analysis...");
+
+            frappe_call('impact_analyser.api.analyze', {
+                prompt: prompt,
+                doctype: doctype,
+                files: files,
+                functions: functions,
+                app: app
+            }).then(res => {
+                if (res.exc) {
+                    _set_failed("Error queuing analysis.");
+                    return;
+                }
+                const data = res.message;
+                if (!data) {
+                    _set_failed("Invalid response from server.");
+                    return;
+                }
+                if (data.status === "Complete" && data.run_id) {
+                    _load_report(data.run_id);
+                } else if (data.run_id) {
+                    _start_polling(data.run_id);
+                } else {
+                    _set_failed("Failed to start analysis run.");
+                }
+            }).catch(err => {
+                _set_failed("Network error: " + err);
+            });
+        });
+
+        $('#ia-new-scan-btn').click(function() {
+            _reset();
+        });
+
+        // Filter behavior
+        $('.ia-filter-btn').click(function() {
+            $('.ia-filter-btn').removeClass('active');
+            $(this).addClass('active');
+            _render_changes($(this).data('filter'));
+        });
+
+        // Accordion behavior
+        $(document).on('click', '.ia-change-header', function() {
+            $(this).parent().toggleClass('open');
+        });
+    });
+
+    function _start_polling(run_id) {
+        _stop_polling();
+        poll_count = 0;
+        poll_timer = setInterval(() => {
+            poll_count++;
+            if (poll_count > 60) {
+                _stop_polling();
+                _set_failed("Analysis timed out.");
+                return;
+            }
+            frappe_call('frappe.client.get', { doctype: "Impact Analysis Run", name: run_id })
+            .then(res => {
+                const run = res.message;
+                if (!run) return;
+
+                if (run.status === "Complete") {
+                    _stop_polling();
+                    _set_progress(100, "Complete", "✓ Analysis complete — loading report…");
+                    all_changes = run.changes || [];
+                    _render_report(run);
+                    $("#ia-progress-card").hide();
+                    $("#ia-results-card").show();
+                } else if (run.status === "Failed") {
+                    _stop_polling();
+                    _set_failed(run.summary || "Pipeline execution failed.");
+                } else {
+                    const stage_progress = {
+                        Queued: 5,
+                        Interpreting: 20,
+                        Scanning: 45,
+                        Drafting: 70,
+                        Formatting: 90,
+                    };
+                    const pct = stage_progress[run.status] || 10;
+                    _set_progress(pct, run.status, `Status: ${run.status}`);
+                }
+            });
+        }, 1800);
+    }
+
+    function _stop_polling() {
+        if (poll_timer) {
+            clearInterval(poll_timer);
+            poll_timer = null;
+        }
+    }
+
+    function _set_progress(pct, active_stage, msg) {
+        $("#ia-progress-bar").css("width", `${pct}%`);
+        $("#ia-status-msg").text(msg);
+
+        const stages = ["Interpreting", "Scanning", "Drafting", "Formatting", "Complete"];
+        const active_idx = stages.indexOf(active_stage);
+
+        $(".ia-step").each(function (i) {
+            $(this).removeClass("active done failed");
+            if (active_stage === "Failed") {
+                if (i < active_idx) $(this).addClass("done");
+                else if (i === active_idx) $(this).addClass("failed");
+            } else {
+                if (i < active_idx) $(this).addClass("done");
+                else if (i === active_idx) $(this).addClass("active");
+            }
+        });
+    }
+
+    function _set_failed(msg) {
+        _stop_polling();
+        _set_progress(100, "Formatting", msg);
+        $(".ia-step").last().prev().addClass("failed").removeClass("active done");
+        $("#ia-status-msg").css("color", "#dc2626").html("❌ " + msg);
+        $("#ia-analyze-btn").prop("disabled", false);
+    }
+
+    function _load_report(run_id) {
+        frappe_call('frappe.client.get', { doctype: "Impact Analysis Run", name: run_id })
+        .then(res => {
+            const run = res.message;
+            if (!run) return;
+            all_changes = run.changes || [];
+            _render_report(run);
+            $("#ia-progress-card").hide();
+            $("#ia-results-card").show();
+        });
+    }
+
+    function escape_html(str) {
+        if (!str) return "";
+        return str.replace(/[&<>'"]/g, function(tag) {
+            const charsToReplace = {
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+            };
+            return charsToReplace[tag] || tag;
+        });
+    }
+
+    function _render_report(run) {
+        $("#ia-result-title").text(`Impact Report — ${run.name}`);
+        $("#ia-result-summary").html(run.summary || "<p>Analysis complete. Review the results below.</p>");
+
+        let is_list_fields = false;
+        if (run.scan_report) {
+            try {
+                const sr = typeof run.scan_report === "string" ? JSON.parse(run.scan_report) : run.scan_report;
+                if (sr.intent === "list_fields") is_list_fields = true;
+            } catch (e) {}
+        }
+
+        const changes = run.changes || [];
+        const high = changes.filter(c => c.impact === "High").length;
+        const med  = changes.filter(c => c.impact === "Medium").length;
+        const low  = changes.filter(c => c.impact === "Low").length;
+
+        if (is_list_fields) {
+            $("#ia-stat-row, #ia-filter-bar, #ia-change-list").hide();
+        } else {
+            $("#ia-stat-row").show().html(`
+                <div class="ia-stat"><div class="ia-stat-num ia-stat-high">${high}</div><div class="ia-stat-lbl">High Impact</div></div>
+                <div class="ia-stat"><div class="ia-stat-num ia-stat-medium">${med}</div><div class="ia-stat-lbl">Medium Impact</div></div>
+                <div class="ia-stat"><div class="ia-stat-num ia-stat-low">${low}</div><div class="ia-stat-lbl">Low Impact</div></div>
+                <div class="ia-stat"><div class="ia-stat-num ia-stat-total">${changes.length}</div><div class="ia-stat-lbl">Total Changes</div></div>
+            `);
+            $("#ia-filter-bar, #ia-change-list").show();
+            _render_changes('all');
+        }
+    }
+
+    function _render_changes(filter) {
+        let changes = all_changes;
+        if (filter === "high")     changes = changes.filter(c => c.impact === "High");
+        else if (filter === "medium")   changes = changes.filter(c => c.impact === "Medium");
+        else if (filter === "low")      changes = changes.filter(c => c.impact === "Low");
+        else if (filter === "file")     changes = changes.filter(c => c.source === "File");
+        else if (filter === "database") changes = changes.filter(c => c.source === "Database");
+
+        const $list = $("#ia-change-list").empty();
+
+        if (!changes.length) {
+            $list.html(`<div class="ia-empty">
+                <div class="ia-empty-icon">✅</div>
+                <h4>No changes match this filter</h4>
+                <p>Try a different filter or check all changes.</p>
+            </div>`);
+            return;
+        }
+
+        const order = { High: 0, Medium: 1, Low: 2 };
+        changes = [...changes].sort((a, b) => (order[a.impact] || 0) - (order[b.impact] || 0));
+
+        changes.forEach((c, idx) => {
+            const impact_cls = (c.impact || "Low").toLowerCase();
+            const source_cls = (c.source || "File").toLowerCase();
+            const impact_lbl = c.impact || "Low";
+            const source_lbl = c.source || "File";
+            const file_parts = (c.file || "unknown").split("/");
+            const file_short = file_parts.slice(-2).join("/");
+            const file_dir = file_parts.slice(0, -2).join("/");
+            const line_txt = c.line ? `:${c.line}` : "";
+
+            $list.append(`
+                <div class="ia-change-item" data-idx="${idx}">
+                    <div class="ia-change-header">
+                        <span class="ia-badge ia-badge-${impact_cls}">${impact_lbl}</span>
+                        <span class="ia-badge ia-badge-${source_cls}">${source_lbl}</span>
+                        <span class="ia-change-file">
+                            ${file_dir ? `<span class="ia-dir-path">${file_dir}/</span>` : ""}<span class="ia-file-name">${file_short}${line_txt}</span>
+                        </span>
+                        ${c.usage_type ? `<span class="ia-change-type">${c.usage_type}</span>` : ""}
+                        <span class="ia-change-expand">›</span>
+                    </div>
+                    <div class="ia-change-body">
+                        ${c.reason ? `<div class="ia-change-reason">📌 ${c.reason}</div>` : ""}
+                        ${c.suggested_action ? `<div class="ia-change-action">💡 <strong>Suggested:</strong> ${c.suggested_action}</div>` : ""}
+                        ${c.snippet ? `<div class="ia-snippet">${escape_html(c.snippet)}</div>` : ""}
+                    </div>
+                </div>
+            `);
+        });
+    }
+
+    function _reset() {
+        _stop_polling();
+        all_changes = [];
+        $(".ia-filter-btn").removeClass("active").first().addClass("active");
+        $("#ia-app-select").val("");
+        $("#ia-doctype-input, #ia-files-input, #ia-functions-input, #ia-prompt-input").val("");
+        $("#ia-results-card, #ia-progress-card").hide();
+        $("#ia-input-card").show();
+        $("#ia-analyze-btn").prop("disabled", false);
+        $("#ia-progress-bar").css("width", "0%");
+        $("#ia-status-msg").text("").css("color", "");
+        $(".ia-step").removeClass("active done failed");
+    }
+</script>
+</body>
+</html>
